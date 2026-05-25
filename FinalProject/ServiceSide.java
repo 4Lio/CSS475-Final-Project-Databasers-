@@ -4,12 +4,14 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+
 
 // Talks to database
 public class ServiceSide {
     Connection connection = null;
 
-    // establish database connection
+    // establish database connection - Implemented by Nolan Kelly
     public void APIBootUp() {
         String url = "jdbc:postgresql://aws-1-us-east-1.pooler.supabase.com:5432/postgres?user=postgres.vdkswcrblirexukuyrwl&password=databases schemas queries";
         String user = "postgres.vdkswcrblirexukuyrwl";
@@ -28,13 +30,33 @@ public class ServiceSide {
         }
     }
 
-    // close database connection
+    // close database connection - Implemented by Nolan Kelly
     public void APIBootDown() {
         try {
             connection.close();
         } catch(SQLException e) {
             System.err.println("Connection close failure: " + e.getMessage());
         }
+    }
+
+    public void TestConnection() {
+        String query = "SELECT COUNT(*) FROM DrinkCat";
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet result = statement.executeQuery(query);
+            //if(result.next());
+            while(result.next()) {
+                int id = result.getInt("count");
+                System.out.println(id);
+            }
+        } catch(SQLException e) {
+             System.err.println("Query failure: " + e.getMessage());
+        }
+    }
+
+    // process input from client API and make calls to server API
+    public void ProcessInput(ArrayList<String> params) {
+        
     }
 
     // All private
