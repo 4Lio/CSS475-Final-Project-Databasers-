@@ -12,23 +12,18 @@ public class ClientSide {
         System.out.println("Select a API or exit");
         System.out.println("AddMember = 0" + "    ShipmentArrived = 1");
         System.out.println("MoveStock = 2" + "    MemberSales = 3");
-        System.out.println("DrinkStats = 3" + "   MonthlyProfits = 4");
-        System.out.println("MonthlyCosts = 5");
+        System.out.println("DrinkStats = 4" + "   MonthlyProfits = 5");
+        System.out.println("MonthlyCosts = 6");
         //System.out.println(" = 7" + " = 8");
         //System.out.println("= 9" + " = 10");
     }
 
-    // process input from client API and make calls to server API
-    public void ProcessInput(String input) { // - Nolan Kelly
-        
-    }
-
-    // All private
+    // All public
 
     // Inputs - name, brand, flavor, drink type, price, and SKU
     // Output - prints success or failure message (failure == drink already exists or something went wrong) before returning true or false
     // Purpose - allows managers to add new drink types to the system to be tracked in the inventory system
-    private boolean AddDrink() {
+    public boolean AddDrink() {
 
         return false;
     }
@@ -36,7 +31,7 @@ public class ClientSide {
     // Inputs - SKU or name, brand, flavor, new price
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
-    private boolean UpdateDrinkPrice() {
+    public boolean UpdateDrinkPrice() {
 
         return false;
     }
@@ -45,7 +40,7 @@ public class ClientSide {
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
-    private boolean UpdateDrinkStatus() {
+    public boolean UpdateDrinkStatus() {
 
         return false;
     }
@@ -53,7 +48,7 @@ public class ClientSide {
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
-    private boolean AddMember() {
+    public boolean AddMember() {
 
         return false;
     }
@@ -61,7 +56,7 @@ public class ClientSide {
     // Inputs - order number (from supplier), supplier email or NULL, order date, estimated arrival date
     // Output - prints success or failure (failure == shipment already exists or something went wrong) message before returning true or false
     // Purpose - allow managers to add new shipment info 
-    private boolean AddShipment() {
+    public boolean AddShipment() {
 
         return false;
     }
@@ -70,7 +65,7 @@ public class ClientSide {
     // Output - prints success or failure (failure == drink/shipment doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allows managers to add actual drinks to a shipment that will added to the inventory upon shipment arrival (drinks must be created 
     // in system before adding them to shipment)
-    private boolean AddDrinkToShipment() {
+    public boolean AddDrinkToShipment() {
 
         return false;
     }
@@ -79,7 +74,7 @@ public class ClientSide {
     // Output - Prints success message (x quantity added to x drink in x location) for each drink in the shipment, or a failure 
     // (failure == shipment doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow the quantities of drinks in the gym to be updated when the shipment arrives to the gym
-    private boolean ShipmentArrived() {
+    public boolean ShipmentArrived() {
 
         return false;
     }
@@ -87,7 +82,7 @@ public class ClientSide {
     // Inputs - SKU, or drink name, brand, flavor, and quantity moved from backstock to display
     // Outputs - prints success or failure (failure == drink doesn’t exists or something went wrong) message displayed before returning true or false
     // Purpose - allow for locations of drink quantities to stay accurate and correctly represent the gym with the system
-    private boolean MoveStock() {
+    public boolean MoveStock() {
 
         return false;
     }
@@ -96,7 +91,7 @@ public class ClientSide {
     // Output - prints info about most recent sale (purchase number, member, date, drinks purchased, total cost) OR prints failure message before 
     // returning true or false 
     // Purpose - allow the most recent purchase to be viewed
-    private boolean MostRecentSale() {
+    public boolean MostRecentSale() {
 
         return false;
     }
@@ -105,7 +100,7 @@ public class ClientSide {
     // Output - prints info about members sales (purchase number, date, drinks purchased, total cost) OR prints failure (failure == member doesn’t 
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
-    private boolean GetMemberSales() {
+    public boolean MemberSales() {
 
         return false;
     }
@@ -113,7 +108,7 @@ public class ClientSide {
     // Inputs -  purchase number
     // Output - prints success or failure (failure == purchase doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a sale to be canceled for a refund, etc.
-    private boolean CancelSale() {
+    public boolean CancelSale() {
 
         return false;
     }
@@ -121,7 +116,7 @@ public class ClientSide {
     // Inputs - member agreement number or NULL, is void purchase (true or false), drink info: name, brand, flavor, or SKU, quantity
     // Output - prints success or failure (failure == member or drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allows for purchases to be registered in the system upon a successful POS checkout (only pulls purchases from display drink location id)
-    private boolean MakePurchase() {
+    public boolean MakePurchase() {
 
         return false;
     }
@@ -129,7 +124,7 @@ public class ClientSide {
     // Inputs - none
     // Output - prints information about most profitable drink (cost to buy, sell price, margin) or failure message before returning true or false
     // Purpose - find most profitable drink for the gym to sell to make business decisions
-    private boolean FindMostProfitableDrink() {
+    public boolean DrinkStats() {
 
         return false;
     }
@@ -138,7 +133,7 @@ public class ClientSide {
     // Output - prints information about most profitable month for given year (year, month, profits) or failure (failure == year hasn’t finished or 
     // something went wrong) message before returning true or false
     // Purpose - find most profitable month in a year to make business decisions
-    private boolean FindMostProfitableMonth() {
+    public boolean MonthlyProfits() {
 
         return false;
     }
@@ -146,7 +141,7 @@ public class ClientSide {
     // Inputs - none
     // Output - prints information about most profitable year for past 5 years (year, profits) or failure message before returning true or false
     // Purpose - find most profitable year in a 5 year span to make business decisions
-    private boolean FindMostProfitableYear() {
+    public boolean FindMostProfitableYear() {
 
         return false;
     }
@@ -154,7 +149,7 @@ public class ClientSide {
     // Inputs - none
     // Output - prints information about any shipments in the system not yet delivered or failure message before returning true or false
     // Purpose - find any missing shipments or solve stock discrepancies in the system
-    private boolean FindUndeliveredShipments() {
+    public boolean FindUndeliveredShipments() {
 
         return false;
     }
@@ -162,7 +157,7 @@ public class ClientSide {
     // Inputs - none
     // Outputs - print information about most costly year in past 5 (year, money spend, margins?) or failure message before returning true or false
     // Purpose - find most expensive spending year recently for business purposes
-    private boolean FindMostCostlyYear() {
+    public boolean FindMostCostlyYear() {
 
         return false;
     }
@@ -171,7 +166,7 @@ public class ClientSide {
     // Outputs - print information about most costly month for the gym from past year (month, money spent, margins?) or failure message before 
     // returning true or false
     // Purpose - find the most expensive month in the past year for the gym for business decisions
-    private boolean FindMostCostlyMonth() {
+    public boolean MonthlyCosts() {
 
         return false;
     }
@@ -180,7 +175,7 @@ public class ClientSide {
     // Outputs - prints inventory information about all active drinks in the system (drink, location, quantity in stock) or failure message before 
     // returning true or false
     // Purpose - view quantities of drinks in the gym
-    private boolean InventoryScan() {
+    public boolean InventoryScan() {
 
         return false;
     }
@@ -189,7 +184,7 @@ public class ClientSide {
     // Outputs - print out any discrepancies between sales and stock (drink, expected stock, actual stock) or failure message before returning true or 
     // false
     // Purpose - identify and prevent shrinkage loss
-    private boolean ShrinkageScan() {
+    public boolean ShrinkageScan() {
 
         return false;
     }

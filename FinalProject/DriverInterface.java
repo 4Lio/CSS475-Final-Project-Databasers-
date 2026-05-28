@@ -10,6 +10,7 @@ public class DriverInterface {
         services.APIBootUp();
         Scanner scanner = new Scanner(System.in);
         String userInput = null;
+        int input = -1;
 
         // handles ui
         while(true) {
@@ -19,7 +20,33 @@ public class DriverInterface {
                 break;
             }
             else {
-                client.ProcessInput(userInput);
+                input = Integer.parseInt(userInput);
+                switch(input) {
+                    case 0:
+                        client.AddMember();
+                        break;
+                    case 1:
+                        client.ShipmentArrived();
+                        break;
+                    case 2:
+                        client.MoveStock();
+                        break;
+                    case 3:
+                        client.MemberSales();
+                        break;
+                    case 4:
+                        client.DrinkStats();
+                        break;
+                    case 5:
+                        client.MonthlyProfits();
+                        break;
+                    case 6:
+                        client.MonthlyCosts();
+                        break;
+                    default:
+                        System.out.println("Invalid input");
+                        break;
+                }
             }
         }
 
