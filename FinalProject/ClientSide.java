@@ -10,17 +10,17 @@ public class ClientSide {
     // prints API options to the screen for user to read - Implemented by Nolan Kelly
     public void DisplayOptions() {
         System.out.println("Select a API or exit");
-        System.out.println(" = 0" + " = 1");
-        System.out.println(" = 2" + " = 3");
-        System.out.println(" = 3" + " = 4");
-        System.out.println(" = 5" + " = 6");
-        System.out.println(" = 7" + " = 8");
-        System.out.println(" = 9" + " = 10");
+        System.out.println("AddMember = 0" + "    ShipmentArrived = 1");
+        System.out.println("MoveStock = 2" + "    MemberSales = 3");
+        System.out.println("DrinkStats = 3" + "   MonthlyProfits = 4");
+        System.out.println("MonthlyCosts = 5");
+        //System.out.println(" = 7" + " = 8");
+        //System.out.println("= 9" + " = 10");
     }
 
     // process input from client API and make calls to server API
-    public void ProcessInput(String input) {
-
+    public void ProcessInput(String input) { // - Nolan Kelly
+        
     }
 
     // All private
