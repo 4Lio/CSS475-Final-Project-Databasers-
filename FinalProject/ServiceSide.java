@@ -1,4 +1,5 @@
 package FinalProject;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -55,18 +56,39 @@ public class ServiceSide {
     }
 
     // process input from client API and make calls to server API
-    public void ProcessInput(ArrayList<String> params) { // - Nolan Kelly
-        
+    // params first item is function call
+    public boolean ProcessInput(ArrayList<String> params) { // - Nolan Kelly
+        switch(params.getFirst()) {
+            case "add_drink":
+                return AddDrink(params);
+            default:
+                System.err.println("Invalid function");
+                return false;
+        }
     }
 
     // All private
 
-    // Inputs - name, brand, flavor, drink type, price, and SKU
+    // Inputs - brand, flavor, drink type, price, and SKU
     // Output - prints success or failure message (failure == drink already exists or something went wrong) before returning true or false
     // Purpose - allows managers to add new drink types to the system to be tracked in the inventory system
-    private boolean AddDrink() {
+    private boolean AddDrink(ArrayList<String> params) {
+        String brand, flavor, drinkType, sku;
+        BigDecimal price;
 
-        return false;
+        brand = params.get(1);
+        flavor = params.get(2);
+        drinkType = params.get(3);
+        price = validateMoney(params.get(4));
+        sku = params.get(5);
+
+        if(price == null)
+            return false;
+
+        int drinkTypeId = retrieveDrinkTypeId(drinkType);
+        System.out.println("DrinkTypeId: " + drinkTypeId);
+
+        return true;
     }
 
     // Inputs - SKU or name, brand, flavor, new price
@@ -230,4 +252,31 @@ public class ServiceSide {
         return false;
     }
 
+    private int retrieveDrinkTypeId(String name) {
+        try {
+            String drinkTypeQuery = """
+                                    SELECT id
+                                    FROM DrinkType
+                                    WHERE name = '%s';
+                                    """.formatted(name);
+            Statement statement = connection.createStatement();
+            ResultSet result = statement.executeQuery(drinkTypeQuery);
+            result.next();
+
+            return result.getInt("id");
+        } catch (SQLException e) {
+            System.err.println("Query failure: " + e.getMessage());
+
+            return -1;
+        }
+    }
+
+    private BigDecimal validateMoney(String money) {
+        try {
+            return new BigDecimal(money);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid input. Please enter a valid decimal number.");
+            return null;
+        }
+    }
 }

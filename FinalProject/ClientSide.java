@@ -1,4 +1,5 @@
 package FinalProject;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -6,26 +7,48 @@ import java.util.Scanner;
 
 // Intermediate between user interface and API's in service side
 public class ClientSide {
-    
+
+    private final Scanner scanner;
+    private final ServiceSide service;
+
+    public ClientSide(Scanner scanner, ServiceSide service) {
+        this.scanner = scanner;
+        this.service = service;
+    }
+
+
     // prints API options to the screen for user to read - Implemented by Nolan Kelly
     public void DisplayOptions() {
+        System.out.println();
         System.out.println("Select a API or exit");
         System.out.println("AddMember = 0" + "    ShipmentArrived = 1");
         System.out.println("MoveStock = 2" + "    MemberSales = 3");
         System.out.println("DrinkStats = 4" + "   MonthlyProfits = 5");
-        System.out.println("MonthlyCosts = 6");
+        System.out.println("MonthlyCosts = 6" + "   AddDrink = 7");
+        System.out.println();
         //System.out.println(" = 7" + " = 8");
         //System.out.println("= 9" + " = 10");
     }
 
     // All public
 
-    // Inputs - name, brand, flavor, drink type, price, and SKU
+    // Inputs - brand, flavor, drink type, price, and SKU
     // Output - prints success or failure message (failure == drink already exists or something went wrong) before returning true or false
     // Purpose - allows managers to add new drink types to the system to be tracked in the inventory system
     public boolean AddDrink() {
+        ArrayList<String> params = new ArrayList<>();
+        System.out.println("Adding a drink to the system. Please provide the following information:\n");
 
-        return false;
+        // Gather information
+        params.add("add_drink");
+        params.add(readString("Brand: "));
+        params.add(readString("Flavor: "));
+        params.add(readString("Drink Type: "));
+        params.add(readString("Price: "));
+        params.add(readString("SKU: "));
+
+        // Send information to service side
+        return service.ProcessInput(params);
     }
 
     // Inputs - SKU or name, brand, flavor, new price
@@ -187,5 +210,10 @@ public class ClientSide {
     public boolean ShrinkageScan() {
 
         return false;
+    }
+
+    private String readString(String prompt) {
+        System.out.print(prompt);
+        return scanner.nextLine();
     }
 }
