@@ -4,13 +4,14 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
 
 // Talks to database
-public class ServiceSide {
+public class ServerSide {
     Connection connection = null;
 
     // establish database connection - Implemented by Nolan Kelly
@@ -58,7 +59,43 @@ public class ServiceSide {
 
     // process input from client API and make calls to server API
     public void ProcessInput(ArrayList<String> params) { // - Nolan Kelly
-        
+        if(params.size() > 0) {
+            switch(Integer.parseInt(params.get(0))) {
+                case 0:
+                    Server_AddMember(null, null, null);
+                    break;
+                case 1:
+                    ShipmentArrived();
+                    break;
+                case 2:
+                    MoveStock();
+                    break;
+                case 3:
+                    Server_MemberSales(null, 0);
+                    break;
+                case 4:
+                    Server_DrinkStats();
+                    break;
+                case 5:
+                    //MonthlyProfits();
+                    break;
+                case 6:
+                    //MonthlyCosts();
+                    break;
+                case 7:
+                    Server_UpdateDrinkPrice(null, 0);
+                    break;
+                case 8:
+                    Server_UpdateDrinkStatus(null, false);
+                    break;
+                case 9:
+                    // empty for now
+                    break;
+                default:
+                    System.out.println("Invalid input");
+                    break;
+            }
+        }
     }
 
     // All private
@@ -79,7 +116,7 @@ public class ServiceSide {
                                                             //
                                                             //                   We might need a date parameter if we only want to
                                                             //                   update the price of a drink at a certain shipment date
-    private boolean UpdateDrinkPrice(String SKU, double price) {
+    private boolean Server_UpdateDrinkPrice(String SKU, double price) {
         try {
             String query = "UPDATE Price "
                          + "SET sell_price = ? "
@@ -105,7 +142,7 @@ public class ServiceSide {
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
     // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
-    private boolean UpdateDrinkStatus(String SKU, boolean newStatus) {
+    private boolean Server_UpdateDrinkStatus(String SKU, boolean newStatus) {
         try {
             String query = "UPDATE DrinkCat "
                          + "SET is_active = ? "
@@ -130,7 +167,7 @@ public class ServiceSide {
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
     // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
-    private boolean AddMember(String agreementNum, String firstName, String lastName) {
+    private boolean Server_AddMember(String agreementNum, String firstName, String lastName) {
         try {
             String query = "INSERT INTO Member "
                          + "VALUES (?, ?, ?) "
@@ -201,7 +238,7 @@ public class ServiceSide {
     // Purpose - analyze member patterns or find specific member transaction
     // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Implementation is unfinished (parameters and query)
                                                             //                   Not to sure how to grab the price based on date
-    private boolean GetMemberSales(String agreementNum, int numRows) {
+    private boolean Server_MemberSales(String agreementNum, int numRows) {
         try {
             String query = "SELECT purchase_number, Purchase.date, drinkID, quantity_purchased, SUM(sell_price)"
                          + "FROM Purchase "
@@ -244,12 +281,54 @@ public class ServiceSide {
         return false;
     }
     
-    // Inputs - none
-    // Output - prints information about most profitable drink (cost to buy, sell price, margin) or failure message before returning true or false
-    // Purpose - find most profitable drink for the gym to sell to make business decisions
-    private boolean FindMostProfitableDrink() {
+    // Prints information about most profitable drink (current sell price, total stock)
+    private boolean Server_DrinkStats() {
+        int counter = 0;
+        String brand;
+        String flavor;
+        String type;
+        String price;
+        int stock;
+        String query = """
+                        SELECT DrinkCat.brand, DrinkCat.flavor, DrinkType.name AS type, 
+	                        get_price(DrinkCat.ID) AS sell_price,
+	                        SUM(Drink.quantity_in_stock) AS total_stock
+                        FROM DrinkCat
+	                        JOIN DrinkType ON(DrinkType.ID = DrinkCat.DrinkTypeID)
+	                        JOIN Drink ON(Drink.DrinkCatID = DrinkCat.ID)
+                        GROUP BY DrinkCat.brand, DrinkCat.flavor, DrinkType.name, DrinkCat.ID
+                        ORDER BY DrinkCat.ID;
+                        """;
+        try {
+            PreparedStatement statement = connection.prepareStatement(query);
+            ResultSet result = statement.executeQuery();
+            
+            // print out columns
+            System.out.printf("%n%-10s | %-20s | %-10s | %-7s | %-5s%n", "brand", "flavor", "type", "price", "stock");
+            System.out.println("-----------------------------------------------------------------");
 
-        return false;
+            while(result.next()) {
+                counter++;
+                brand = result.getString("brand");
+                flavor = result.getString("flavor");
+                type = result.getString("type");
+                price = result.getString("sell_price");
+                stock = result.getInt("total_stock");
+                System.out.printf("%-10s | %-20s | %-10s | %-7s | %-5d%n", brand, flavor, type, price, stock);
+            }
+            System.out.println();
+            if(counter > 0) {
+                return true;
+            }
+            else {  // counter == 0 -- no rows returned
+                System.out.print("No drinks in the system\n\n");
+                return false;
+            }
+           
+        } catch(SQLException e) {
+             System.err.println("Query failure: " + e.getMessage());
+             return false;
+        }
     }
     
     // Inputs - year

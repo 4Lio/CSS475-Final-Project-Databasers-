@@ -6,6 +6,14 @@ import java.util.Scanner;
 
 // Intermediate between user interface and API's in service side
 public class ClientSide {
+
+    private final Scanner scanner;
+    private final ServerSide server;
+
+    public ClientSide(Scanner scanner, ServerSide server) {
+        this.scanner = scanner;
+        this.server = server;
+    }
     
     // prints API options to the screen for user to read - Implemented by Nolan Kelly
     public void DisplayOptions() {
@@ -31,7 +39,7 @@ public class ClientSide {
     // Inputs - SKU or name, brand, flavor, new price
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
-    public boolean UpdateDrinkPrice() {
+    public boolean Client_UpdateDrinkPrice() {
 
         return false;
     }
@@ -40,7 +48,7 @@ public class ClientSide {
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
-    public boolean UpdateDrinkStatus() {
+    public boolean Client_UpdateDrinkStatus() {
 
         return false;
     }
@@ -48,7 +56,7 @@ public class ClientSide {
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
-    public boolean AddMember() {
+    public boolean Client_AddMember() {
 
         return false;
     }
@@ -100,7 +108,7 @@ public class ClientSide {
     // Output - prints info about members sales (purchase number, date, drinks purchased, total cost) OR prints failure (failure == member doesn’t 
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
-    public boolean MemberSales() {
+    public boolean Client_MemberSales() {
 
         return false;
     }
@@ -121,11 +129,12 @@ public class ClientSide {
         return false;
     }
     
-    // Inputs - none
-    // Output - prints information about most profitable drink (cost to buy, sell price, margin) or failure message before returning true or false
-    // Purpose - find most profitable drink for the gym to sell to make business decisions
-    public boolean DrinkStats() {
-
+    // No input needed, just make call to the server
+    public boolean Client_DrinkStats() {
+        //System.out.println("No inputs required");
+        ArrayList<String> list = new ArrayList<String>();
+        list.add("4");  // 4 is the integer assigned to this API - used in the switch
+        server.ProcessInput(list);
         return false;
     }
     
