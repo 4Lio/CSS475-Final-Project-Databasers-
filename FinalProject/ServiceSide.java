@@ -1,6 +1,8 @@
 package FinalProject;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
@@ -72,26 +74,82 @@ public class ServiceSide {
     // Inputs - SKU or name, brand, flavor, new price
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
-    private boolean UpdateDrinkPrice() {
+    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Name, brand, and flavor are not needed?
+                                                            //                   Check Chenault's comments on schema revisions
+                                                            //
+                                                            //                   We might need a date parameter if we only want to
+                                                            //                   update the price of a drink at a certain shipment date
+    private boolean UpdateDrinkPrice(String SKU, double price) {
+        try {
+            String query = "UPDATE Price "
+                         + "SET sell_price = ? "
+                         + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?";
 
-        return false;
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            preparedStatement.setDouble(1, price);
+            preparedStatement.setString(2, SKU);
+
+            preparedStatement.executeQuery();
+
+            return true;
+        } catch (SQLException e) {
+            System.out.println("Update failed. Possibly invalid SKU");
+
+            return false;
+        }
     }
     
     // Inputs - SKU or name, brand, flavor, new isActive status (true or false)
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
-    private boolean UpdateDrinkStatus() {
+    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
+    private boolean UpdateDrinkStatus(String SKU, boolean newStatus) {
+        try {
+            String query = "UPDATE DrinkCat "
+                         + "SET is_active = ? "
+                         + "WHERE SKU = ?";
 
-        return false;
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            preparedStatement.setBoolean(1, newStatus);
+            preparedStatement.setString(2, SKU);
+
+            preparedStatement.executeQuery();
+
+            return true;
+        } catch (SQLException e) {
+            System.out.println("Update failed. Possibly invalid SKU");
+
+            return false;
+        }
     }
 
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
-    private boolean AddMember() {
+    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
+    private boolean AddMember(String agreementNum, String firstName, String lastName) {
+        try {
+            String query = "INSERT INTO Member "
+                         + "VALUES (?, ?, ?) "
+                         + "RETURNING ID";
 
-        return false;
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            preparedStatement.setString(1, agreementNum);
+            preparedStatement.setString(2, firstName);
+            preparedStatement.setString(3, lastName);
+
+            preparedStatement.executeQuery();
+
+            return true;
+        } catch (SQLException e) {
+            System.out.println("Update failed. Member possibly already exists");
+
+            return false;
+        }
     }
 
     // Inputs - order number (from supplier), supplier email or NULL, order date, estimated arrival date
@@ -141,9 +199,33 @@ public class ServiceSide {
     // Output - prints info about members sales (purchase number, date, drinks purchased, total cost) OR prints failure (failure == member doesn’t 
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
-    private boolean GetMemberSales() {
+    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Implementation is unfinished (parameters and query)
+                                                            //                   Not to sure how to grab the price based on date
+    private boolean GetMemberSales(String agreementNum, int numRows) {
+        try {
+            String query = "SELECT purchase_number, Purchase.date, drinkID, quantity_purchased, SUM(sell_price)"
+                         + "FROM Purchase "
+                         + "    JOIN Member ON (Member.ID = Purchase.MemberID "
+                         + "    JOIN DrinkToPurchase ON (DrinkToPurchase.PurchaseID = Purchase.ID) "
+                         + "    JOIN Drink ON (Drink.ID = DrinkToPurchase.DrinkID) "
+                         + "    JOIN DrinkCat ON (DrinkCat.ID = Drink.DrinkCatID) "
+                         + "    JOIN Price ON (Price.ID = DrinkCat.ID) "
+                         + "WHERE agreement_number = ? "
+                         + "LIMIT ? ";
 
-        return false;
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
+
+            preparedStatement.setString(1, agreementNum);
+            preparedStatement.setInt(2, numRows);
+
+            preparedStatement.executeQuery();
+
+            return true;
+        } catch (SQLException e) {
+            System.out.println("Update failed. Member possibly doesn't exist");
+
+            return false;
+        }
     }
 
     // Inputs -  purchase number
