@@ -87,12 +87,21 @@ public class ClientSide {
         return false;
     }
 
-    // Inputs - SKU, or drink name, brand, flavor, and quantity moved from backstock to display
-    // Outputs - prints success or failure (failure == drink doesn’t exists or something went wrong) message displayed before returning true or false
-    // Purpose - allow for locations of drink quantities to stay accurate and correctly represent the gym with the system
-    public boolean MoveStock() {
-
-        return false;
+    // Needs drink SKU and quantity of drinks to move from storage to display
+    public boolean Client_MoveStock() {
+        ArrayList<String> input = new ArrayList<>();
+        input.add("2");
+        System.out.println("\nDrink SKU: ");
+        input.add(scanner.next());
+        System.out.println("\nDrink quantity: ");
+        input.add(scanner.next());
+        if(Integer.parseInt(input.get(2)) <= 0) {
+            System.err.println("Invalid quantity\n");
+            return false;
+        }
+        else {  // quantity > 0
+            return server.ProcessInput(input);
+        } 
     }
 
     // Inputs - none
@@ -132,10 +141,9 @@ public class ClientSide {
     // No input needed, just make call to the server
     public boolean Client_DrinkStats() {
         //System.out.println("No inputs required");
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         list.add("4");  // 4 is the integer assigned to this API - used in the switch
-        server.ProcessInput(list);
-        return false;
+        return server.ProcessInput(list);
     }
     
     // Inputs - year

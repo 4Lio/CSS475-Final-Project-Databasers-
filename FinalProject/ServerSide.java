@@ -14,7 +14,7 @@ import java.util.ArrayList;
 public class ServerSide {
     Connection connection = null;
 
-    // establish database connection - Implemented by Nolan Kelly
+    // establish database connection
     public void APIBootUp() {
         String url = "jdbc:postgresql://aws-1-us-east-1.pooler.supabase.com:5432/postgres?user=postgres.vdkswcrblirexukuyrwl&password=databases schemas queries";
         String user = "postgres.vdkswcrblirexukuyrwl";
@@ -23,7 +23,7 @@ public class ServerSide {
         try {
             connection = DriverManager.getConnection(url, user, password);
             if (connection != null) {
-                System.out.println("Connected to Supabase successfully!");
+                System.out.println("Server connection established");
             }
             else {
                 System.out.println("Connection failure");
@@ -33,7 +33,7 @@ public class ServerSide {
         }
     }
 
-    // close database connection - Implemented by Nolan Kelly
+    // close database connection
     public void APIBootDown() {
         try {
             connection.close();
@@ -42,60 +42,38 @@ public class ServerSide {
         }
     }
 
-    public void TestConnection() {
-        String query = "SELECT COUNT(*) FROM DrinkCat";
-        try {
-            Statement statement = connection.createStatement();
-            ResultSet result = statement.executeQuery(query);
-            //if(result.next());
-            while(result.next()) {
-                int id = result.getInt("count");
-                System.out.println(id);
-            }
-        } catch(SQLException e) {
-             System.err.println("Query failure: " + e.getMessage());
-        }
-    }
-
     // process input from client API and make calls to server API
-    public void ProcessInput(ArrayList<String> params) { // - Nolan Kelly
+    public boolean ProcessInput(ArrayList<String> params) {
         if(params.size() > 0) {
             switch(Integer.parseInt(params.get(0))) {
                 case 0:
-                    Server_AddMember(null, null, null);
-                    break;
+                    return Server_AddMember(null, null, null);
                 case 1:
-                    ShipmentArrived();
-                    break;
+                    return ShipmentArrived();
                 case 2:
-                    MoveStock();
-                    break;
+                    return Server_MoveStock(params.get(1), Integer.parseInt(params.get(2)));
                 case 3:
-                    Server_MemberSales(null, 0);
-                    break;
+                    return Server_MemberSales(null, 0);
                 case 4:
-                    Server_DrinkStats();
-                    break;
+                    return Server_DrinkStats();
                 case 5:
-                    //MonthlyProfits();
+                    // return MonthlyProfits();
                     break;
                 case 6:
-                    //MonthlyCosts();
+                    //return MonthlyCosts();
                     break;
                 case 7:
-                    Server_UpdateDrinkPrice(null, 0);
-                    break;
+                    return Server_UpdateDrinkPrice(null, 0);
                 case 8:
-                    Server_UpdateDrinkStatus(null, false);
-                    break;
+                    return Server_UpdateDrinkStatus(null, false);
                 case 9:
-                    // empty for now
-                    break;
+                    // return empty for now
                 default:
                     System.out.println("Invalid input");
                     break;
             }
         }
+        return false;
     }
 
     // All private
@@ -218,7 +196,40 @@ public class ServerSide {
     // Inputs - SKU, or drink name, brand, flavor, and quantity moved from backstock to display
     // Outputs - prints success or failure (failure == drink doesn’t exists or something went wrong) message displayed before returning true or false
     // Purpose - allow for locations of drink quantities to stay accurate and correctly represent the gym with the system
-    private boolean MoveStock() {
+    private boolean Server_MoveStock(String sku, int quantity) {
+        /*boolean valid = false;
+        String query1 = "SELECT validate_stock_move(?, ?);";
+        String qeury2 = "SELECT move_stock(?, ?);";
+
+        try {
+            PreparedStatement statement = connection.prepareStatement(query1);
+            statement.setString(1, sku);
+            statement.setInt(2, quantity);
+            ResultSet result = statement.executeQuery();
+            if(result.next()) {
+                valid = result.getBoolean("validate_stock_move");    
+            }
+            else {  // bad sku given
+                System.err.println("Bad sku input");
+                return false;
+            }
+            
+            if(valid) { // if we are good to procede with the stock move
+                PreparedStatement statement2 = connection.prepareStatement(query2);
+                statement2.setString(1, sku);
+                statement2.setInt(2, quantity);
+                statement.executeQuery();
+                System.out.println(quantity + " stock moved for " + sku + " from storage to display");
+                return true;
+            }
+            else {  // if too much quantity requested
+                System.err.println("Too much quantity requested");
+                return false;
+            }
+        } catch(SQLException e) {
+             System.err.println("Query failure: " + e.getMessage() + "\n");
+             return false;
+        }*/
 
         return false;
     }
@@ -288,14 +299,15 @@ public class ServerSide {
         String flavor;
         String type;
         String price;
-        int stock;
+        int sales;
         String query = """
                         SELECT DrinkCat.brand, DrinkCat.flavor, DrinkType.name AS type, 
 	                        get_price(DrinkCat.ID) AS sell_price,
-	                        SUM(Drink.quantity_in_stock) AS total_stock
+	                        SUM(DrinkToPurchase.quantity_purchased) AS total_sales
                         FROM DrinkCat
-	                        JOIN DrinkType ON(DrinkType.ID = DrinkCat.DrinkTypeID)
-	                        JOIN Drink ON(Drink.DrinkCatID = DrinkCat.ID)
+                            JOIN DrinkType ON(DrinkType.ID = DrinkCat.DrinkTypeID)
+                            JOIN Drink ON(Drink.DrinkCatID = DrinkCat.ID)
+                            JOIN DrinkToPurchase ON(DrinkToPurchase.DrinkID = Drink.ID)
                         GROUP BY DrinkCat.brand, DrinkCat.flavor, DrinkType.name, DrinkCat.ID
                         ORDER BY DrinkCat.ID;
                         """;
@@ -304,8 +316,8 @@ public class ServerSide {
             ResultSet result = statement.executeQuery();
             
             // print out columns
-            System.out.printf("%n%-10s | %-20s | %-10s | %-7s | %-5s%n", "brand", "flavor", "type", "price", "stock");
-            System.out.println("-----------------------------------------------------------------");
+            System.out.printf("%n%-10s | %-20s | %-10s | %-13s | %-5s%n", "brand", "flavor", "type", "current_price", "total_sales");
+            System.out.println("-----------------------------------------------------------------------------");
 
             while(result.next()) {
                 counter++;
@@ -313,8 +325,8 @@ public class ServerSide {
                 flavor = result.getString("flavor");
                 type = result.getString("type");
                 price = result.getString("sell_price");
-                stock = result.getInt("total_stock");
-                System.out.printf("%-10s | %-20s | %-10s | %-7s | %-5d%n", brand, flavor, type, price, stock);
+                sales = result.getInt("total_sales");
+                System.out.printf("%-10s | %-20s | %-10s | %-13s | %-5d%n", brand, flavor, type, price, sales);
             }
             System.out.println();
             if(counter > 0) {
@@ -326,7 +338,7 @@ public class ServerSide {
             }
            
         } catch(SQLException e) {
-             System.err.println("Query failure: " + e.getMessage());
+             System.err.println("Query failure: " + e.getMessage() + "\n");
              return false;
         }
     }
