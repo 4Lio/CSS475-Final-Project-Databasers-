@@ -1,5 +1,4 @@
 package FinalProject;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -9,52 +8,38 @@ import java.util.Scanner;
 public class ClientSide {
 
     private final Scanner scanner;
-    private final ServiceSide service;
+    private final ServerSide server;
 
-    public ClientSide(Scanner scanner, ServiceSide service) {
+    public ClientSide(Scanner scanner, ServerSide server) {
         this.scanner = scanner;
-        this.service = service;
+        this.server = server;
     }
-
-
+    
     // prints API options to the screen for user to read - Implemented by Nolan Kelly
     public void DisplayOptions() {
-        System.out.println();
         System.out.println("Select a API or exit");
         System.out.println("AddMember = 0" + "    ShipmentArrived = 1");
         System.out.println("MoveStock = 2" + "    MemberSales = 3");
         System.out.println("DrinkStats = 4" + "   MonthlyProfits = 5");
-        System.out.println("MonthlyCosts = 6" + "   AddDrink = 7");
-        System.out.println();
+        System.out.println("MonthlyCosts = 6");
         //System.out.println(" = 7" + " = 8");
         //System.out.println("= 9" + " = 10");
     }
 
     // All public
 
-    // Inputs - brand, flavor, drink type, price, and SKU
+    // Inputs - name, brand, flavor, drink type, price, and SKU
     // Output - prints success or failure message (failure == drink already exists or something went wrong) before returning true or false
     // Purpose - allows managers to add new drink types to the system to be tracked in the inventory system
     public boolean AddDrink() {
-        ArrayList<String> params = new ArrayList<>();
-        System.out.println("Adding a drink to the system. Please provide the following information:\n");
 
-        // Gather information
-        params.add("add_drink");
-        params.add(readString("Brand: "));
-        params.add(readString("Flavor: "));
-        params.add(readString("Drink Type: "));
-        params.add(readString("Price: "));
-        params.add(readString("SKU: "));
-
-        // Send information to service side
-        return service.ProcessInput(params);
+        return false;
     }
 
     // Inputs - SKU or name, brand, flavor, new price
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
-    public boolean UpdateDrinkPrice() {
+    public boolean Client_UpdateDrinkPrice() {
 
         return false;
     }
@@ -63,7 +48,7 @@ public class ClientSide {
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
-    public boolean UpdateDrinkStatus() {
+    public boolean Client_UpdateDrinkStatus() {
 
         return false;
     }
@@ -71,7 +56,7 @@ public class ClientSide {
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
-    public boolean AddMember() {
+    public boolean Client_AddMember() {
 
         return false;
     }
@@ -102,12 +87,21 @@ public class ClientSide {
         return false;
     }
 
-    // Inputs - SKU, or drink name, brand, flavor, and quantity moved from backstock to display
-    // Outputs - prints success or failure (failure == drink doesn’t exists or something went wrong) message displayed before returning true or false
-    // Purpose - allow for locations of drink quantities to stay accurate and correctly represent the gym with the system
-    public boolean MoveStock() {
-
-        return false;
+    // Needs drink SKU and quantity of drinks to move from storage to display
+    public boolean Client_MoveStock() {
+        ArrayList<String> input = new ArrayList<>();
+        input.add("2");
+        System.out.println("\nDrink SKU: ");
+        input.add(scanner.next());
+        System.out.println("\nDrink quantity: ");
+        input.add(scanner.next());
+        if(Integer.parseInt(input.get(2)) <= 0) {
+            System.err.println("Invalid quantity\n");
+            return false;
+        }
+        else {  // quantity > 0
+            return server.ProcessInput(input);
+        } 
     }
 
     // Inputs - none
@@ -123,7 +117,7 @@ public class ClientSide {
     // Output - prints info about members sales (purchase number, date, drinks purchased, total cost) OR prints failure (failure == member doesn’t 
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
-    public boolean MemberSales() {
+    public boolean Client_MemberSales() {
 
         return false;
     }
@@ -144,12 +138,12 @@ public class ClientSide {
         return false;
     }
     
-    // Inputs - none
-    // Output - prints information about most profitable drink (cost to buy, sell price, margin) or failure message before returning true or false
-    // Purpose - find most profitable drink for the gym to sell to make business decisions
-    public boolean DrinkStats() {
-
-        return false;
+    // No input needed, just make call to the server
+    public boolean Client_DrinkStats() {
+        //System.out.println("No inputs required");
+        ArrayList<String> list = new ArrayList<>();
+        list.add("4");  // 4 is the integer assigned to this API - used in the switch
+        return server.ProcessInput(list);
     }
     
     // Inputs - year
@@ -210,10 +204,5 @@ public class ClientSide {
     public boolean ShrinkageScan() {
 
         return false;
-    }
-
-    private String readString(String prompt) {
-        System.out.print(prompt);
-        return scanner.nextLine();
     }
 }
