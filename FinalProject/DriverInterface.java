@@ -49,7 +49,7 @@ public class DriverInterface {
                             client.Client_UpdateDrinkStatus();
                             break;
                         case 9:
-                            // empty for now
+                            client.Client_InventoryScan();
                             break;
                         default:
                             System.out.println("Invalid input");
