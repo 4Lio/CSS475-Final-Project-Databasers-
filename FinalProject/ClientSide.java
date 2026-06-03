@@ -92,12 +92,12 @@ public class ClientSide {
     public boolean Client_MoveStock() {
         ArrayList<String> input = new ArrayList<>();
         input.add("2");
-        System.out.println("\nDrink SKU: ");
+        System.out.print("\nDrink SKU: ");
         input.add(scanner.next());
-        System.out.println("\nDrink quantity: ");
+        System.out.print("Drink quantity: ");
         input.add(scanner.next());
         if(Integer.parseInt(input.get(2)) <= 0) {
-            System.err.println("Invalid quantity\n");
+            System.err.println("\nInvalid quantity\n");
             return false;
         }
         else {  // quantity > 0

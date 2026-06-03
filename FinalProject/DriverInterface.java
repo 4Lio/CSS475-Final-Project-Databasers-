@@ -8,65 +8,67 @@ public class DriverInterface {
         Scanner scanner = new Scanner(System.in);
         ServerSide service = new ServerSide();
         ClientSide client = new ClientSide(scanner, service);
-        service.APIBootUp();
         String userInput = null;
+        boolean run = service.BootUp();
 
-        // handles ui
-        while(true) {
-            client.DisplayOptions();
-            userInput = scanner.next();
-            if(userInput.equals("exit")) {
-                break;
-            }
-            else {
-                try {
-                    switch(Integer.parseInt(userInput)) {
-                        case 0:
-                            client.Client_AddMember();
-                            break;
-                        case 1:
-                            //ShipmentArrived();
-                            break;
-                        case 2:
-                            client.Client_MoveStock();
-                            break;
-                        case 3:
-                            client.Client_MemberSales();
-                            break;
-                        case 4:
-                            client.Client_DrinkStats();
-                            break;
-                        case 5:
-                            //MonthlyProfits();
-                            break;
-                        case 6:
-                            //MonthlyCosts();
-                            break;
-                        case 7:
-                            client.Client_UpdateDrinkPrice();
-                            break;
-                        case 8:
-                            client.Client_UpdateDrinkStatus();
-                            break;
-                        case 9:
-                            client.Client_InventoryScan();
-                            break;
-                        default:
-                            System.out.println("Invalid input");
-                            break;
+        if(run) {   // if we are good to go/server BootUp worked
+            // handles ui
+            while(true) {
+                client.DisplayOptions();
+                userInput = scanner.next();
+                if(userInput.equals("exit")) {
+                    break;
+                }
+                else {
+                    try {
+                        switch(Integer.parseInt(userInput)) {
+                            case 0:
+                                client.Client_AddMember();
+                                break;
+                            case 1:
+                                //ShipmentArrived();
+                                break;
+                            case 2:
+                                client.Client_MoveStock();
+                                break;
+                            case 3:
+                                client.Client_MemberSales();
+                                break;
+                            case 4:
+                                client.Client_DrinkStats();
+                                break;
+                            case 5:
+                                //MonthlyProfits();
+                                break;
+                            case 6:
+                                //MonthlyCosts();
+                                break;
+                            case 7:
+                                client.Client_UpdateDrinkPrice();
+                                break;
+                            case 8:
+                                client.Client_UpdateDrinkStatus();
+                                break;
+                            case 9:
+                                client.Client_InventoryScan();
+                                break;
+                            default:
+                                System.out.println("\nInvalid input\n");
+                                break;
+                        }
                     }
-                }
-                catch(NullPointerException e) {
-                    System.err.println("Connection failure: " + e.getMessage() + "\n");
-                }
-                catch(NumberFormatException e) {
-                    System.err.println("Connection failure: " + e.getMessage() + "\n");
+                    catch(NullPointerException e) {
+                        System.err.println("\nBad input: " + e.getMessage() + "\n");
+                    }
+                    catch(NumberFormatException e) {
+                        System.err.println("\nBad input: " + e.getMessage() + "\n");
+                    }
                 }
             }
         }
 
         //services.TestConnection();
-        service.APIBootDown();
+        service.BootDown();
         scanner.close();
     }
 }
