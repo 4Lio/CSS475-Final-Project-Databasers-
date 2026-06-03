@@ -15,7 +15,7 @@ public class ServerSide {
     Connection connection = null;
 
     // establish database connection
-    public void APIBootUp() {
+    public boolean BootUp() {
         String url = "jdbc:postgresql://aws-1-us-east-1.pooler.supabase.com:5432/postgres?user=postgres.vdkswcrblirexukuyrwl&password=databases schemas queries";
         String user = "postgres.vdkswcrblirexukuyrwl";
         String password = "databases schemas queries";
@@ -23,18 +23,21 @@ public class ServerSide {
         try {
             connection = DriverManager.getConnection(url, user, password);
             if (connection != null) {
-                System.out.println("Server connection established");
+                System.out.println("Server connection established\n");
+                return true;
             }
             else {
-                System.out.println("Connection failure");
+                System.out.println("Server connection failure\n");
+                return false;
             }
         } catch(SQLException e) {
-            System.err.println("Connection failure: " + e.getMessage());
+            System.err.println("Server connection failure: " + e.getMessage() + "\n");
+            return false;
         }
     }
 
     // close database connection
-    public void APIBootDown() {
+    public void BootDown() {
         try {
             connection.close();
         } catch(SQLException e) {
@@ -193,45 +196,102 @@ public class ServerSide {
         return false;
     }
 
-    // Inputs - SKU, or drink name, brand, flavor, and quantity moved from backstock to display
-    // Outputs - prints success or failure (failure == drink doesn’t exists or something went wrong) message displayed before returning true or false
-    // Purpose - allow for locations of drink quantities to stay accurate and correctly represent the gym with the system
+    // Server_MoveStock -- Moves stock from storage to display for a drink identified by the SKU
+    /* Query used to create functions used in this API:
+    CREATE OR REPLACE FUNCTION validate_stock_move 
+	    (in_sku varchar, in_quantity integer) 
+    RETURNS bool
+    AS 
+    $$
+    DECLARE stock integer;
+    BEGIN
+    SELECT Drink.quantity_in_stock INTO stock
+    FROM Drink 
+        JOIN DrinkCat ON (DrinkCat.ID = Drink.DrinkCatID) 
+        JOIN DrinkLocation ON (DrinkLocation.ID = Drink.DrinkLocationID) 
+    WHERE DrinkCat.SKU = in_sku AND DrinkLocation.name = 'Storage'
+    FOR UPDATE;
+
+    RETURN in_quantity <= COALESCE(stock, -1);
+    END;
+    $$ LANGUAGE plpgsql;
+
+    CREATE OR REPLACE FUNCTION move_stock 
+        (in_sku varchar, in_quantity integer)
+    RETURNS void
+    AS $$
+    UPDATE Drink
+    SET quantity_in_stock = Drink.quantity_in_stock - in_quantity
+    FROM DrinkCat, DrinkLocation
+    WHERE Drink.DrinkCatID = DrinkCat.ID 
+        AND Drink.DrinkLocationID = DrinkLocation.ID
+        AND DrinkCat.SKU = in_sku
+        AND DrinkLocation.name = 'Storage';
+
+    UPDATE Drink
+    SET quantity_in_stock = Drink.quantity_in_stock + in_quantity
+    FROM DrinkCat, DrinkLocation
+    WHERE Drink.DrinkCatID = DrinkCat.ID 
+        AND Drink.DrinkLocationID = DrinkLocation.ID
+        AND DrinkCat.SKU = in_sku 
+        AND DrinkLocation.name = 'Display';
+    $$ 
+    LANGUAGE SQL;
+    */
     private boolean Server_MoveStock(String sku, int quantity) {
-        /*boolean valid = false;
+        boolean outcome = false;
+        boolean valid = false;
         String query1 = "SELECT validate_stock_move(?, ?);";
         String qeury2 = "SELECT move_stock(?, ?);";
 
-        try {
-            PreparedStatement statement = connection.prepareStatement(query1);
+        try(PreparedStatement statement = connection.prepareStatement(query1)) {
+            connection.setAutoCommit(false);
             statement.setString(1, sku);
             statement.setInt(2, quantity);
-            ResultSet result = statement.executeQuery();
-            if(result.next()) {
-                valid = result.getBoolean("validate_stock_move");    
-            }
-            else {  // bad sku given
-                System.err.println("Bad sku input");
-                return false;
+            try(ResultSet result = statement.executeQuery()) {
+                if(result.next()) {
+                    valid = result.getBoolean("validate_stock_move");    
+                }    
             }
             
             if(valid) { // if we are good to procede with the stock move
-                PreparedStatement statement2 = connection.prepareStatement(query2);
-                statement2.setString(1, sku);
-                statement2.setInt(2, quantity);
-                statement.executeQuery();
-                System.out.println(quantity + " stock moved for " + sku + " from storage to display");
-                return true;
+                try(PreparedStatement statement2 = connection.prepareStatement(qeury2)) {
+                    statement2.setString(1, sku);
+                    statement2.setInt(2, quantity);
+                    statement2.executeQuery();
+                    System.out.println("\n" + quantity + " stock moved for " + sku + " from storage to display\n");
+                    outcome = true;
+                }
             }
-            else {  // if too much quantity requested
-                System.err.println("Too much quantity requested");
-                return false;
+            else {  // if too much quantity requested || // bad sku given
+                System.err.println("\nBad input\n");
+                outcome = false;
             }
         } catch(SQLException e) {
-             System.err.println("Query failure: " + e.getMessage() + "\n");
-             return false;
-        }*/
+             System.err.println("\nQuery failure: " + e.getMessage() + "\n");
+             outcome = false;
+        } finally {
+            try {
+                if(connection.getAutoCommit() == false) {
+                    if(outcome) {   // if all was a success/queries went through
+                        connection.commit();
+                    }
+                    else {  // some failure in query
+                        connection.rollback();
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("\nCommit failure: " + e.getMessage());
+            }
 
-        return false;
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.err.println("\nConnection failure resetting auto-commit: " + e.getMessage());
+                outcome = false;
+            }
+        }
+        return outcome;
     }
 
     // Inputs - none
@@ -292,7 +352,20 @@ public class ServerSide {
         return false;
     }
     
-    // Prints information about most profitable drink (current sell price, total stock)
+    // Server_DrinkStats -- Prints information about most profitable drink (current sell price, total stock)
+    /* Query used to create get_price function used in this API:
+    CREATE OR REPLACE FUNCTION get_price (in_drinkcatid integer)
+    RETURNS money
+    AS
+    $$
+    SELECT sell_price
+    FROM Price
+    WHERE DrinkCatID = in_drinkcatid
+    ORDER BY date DESC
+    LIMIT 1;
+    $$
+    LANGUAGE SQL STABLE;
+    */
     private boolean Server_DrinkStats() {
         int counter = 0;
         String brand;
@@ -303,38 +376,37 @@ public class ServerSide {
         String query = """
                         SELECT DrinkCat.brand, DrinkCat.flavor, DrinkType.name AS type, 
 	                        get_price(DrinkCat.ID) AS sell_price,
-	                        SUM(DrinkToPurchase.quantity_purchased) AS total_sales
+	                        COALESCE(SUM(DrinkToPurchase.quantity_purchased), 0) AS total_sales
                         FROM DrinkCat
                             JOIN DrinkType ON(DrinkType.ID = DrinkCat.DrinkTypeID)
                             JOIN Drink ON(Drink.DrinkCatID = DrinkCat.ID)
-                            JOIN DrinkToPurchase ON(DrinkToPurchase.DrinkID = Drink.ID)
+                            LEFT JOIN DrinkToPurchase ON(DrinkToPurchase.DrinkID = Drink.ID)
                         GROUP BY DrinkCat.brand, DrinkCat.flavor, DrinkType.name, DrinkCat.ID
                         ORDER BY DrinkCat.ID;
                         """;
-        try {
-            PreparedStatement statement = connection.prepareStatement(query);
-            ResultSet result = statement.executeQuery();
-            
-            // print out columns
-            System.out.printf("%n%-10s | %-20s | %-10s | %-13s | %-5s%n", "brand", "flavor", "type", "current_price", "total_sales");
-            System.out.println("-----------------------------------------------------------------------------");
+        try(PreparedStatement statement = connection.prepareStatement(query)){
+            try(ResultSet result = statement.executeQuery()) {
+                // print out columns
+                System.out.printf("%n%-10s | %-20s | %-10s | %-13s | %-5s%n", "brand", "flavor", "type", "current_price", "total_sales");
+                System.out.println("-----------------------------------------------------------------------------");
 
-            while(result.next()) {
-                counter++;
-                brand = result.getString("brand");
-                flavor = result.getString("flavor");
-                type = result.getString("type");
-                price = result.getString("sell_price");
-                sales = result.getInt("total_sales");
-                System.out.printf("%-10s | %-20s | %-10s | %-13s | %-5d%n", brand, flavor, type, price, sales);
-            }
-            System.out.println();
-            if(counter > 0) {
-                return true;
-            }
-            else {  // counter == 0 -- no rows returned
-                System.out.print("No drinks in the system\n\n");
-                return false;
+                while(result.next()) {
+                    counter++;
+                    brand = result.getString("brand");
+                    flavor = result.getString("flavor");
+                    type = result.getString("type");
+                    price = result.getString("sell_price");
+                    sales = result.getInt("total_sales");
+                    System.out.printf("%-10s | %-20s | %-10s | %-13s | %-5d%n", brand, flavor, type, price, sales);
+                }
+                System.out.println();
+                if(counter > 0) {
+                    return true;
+                }
+                else {  // counter == 0 -- no rows returned
+                    System.out.print("No drinks in the system\n\n");
+                    return false;
+                }
             }
            
         } catch(SQLException e) {
