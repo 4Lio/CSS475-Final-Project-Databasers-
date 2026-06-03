@@ -1,4 +1,5 @@
 package FinalProject;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -192,9 +193,13 @@ public class ClientSide {
     // Outputs - prints inventory information about all active drinks in the system (drink, location, quantity in stock) or failure message before 
     // returning true or false
     // Purpose - view quantities of drinks in the gym
-    public boolean InventoryScan() {
+    // Implemented by: Codie Aragon
+    public boolean Client_InventoryScan() {
+        ArrayList<String> input = new ArrayList<>();
 
-        return false;
+        System.out.println("Scanning inventory...");
+        input.add("9");
+        return server.ProcessInput(input);
     }
     
     // Inputs - none
@@ -204,5 +209,11 @@ public class ClientSide {
     public boolean ShrinkageScan() {
 
         return false;
+    }
+
+    // HELPER METHODS
+    private String readString(String prompt) {
+        System.out.print(prompt);
+        return scanner.nextLine();
     }
 }

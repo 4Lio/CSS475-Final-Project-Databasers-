@@ -70,7 +70,7 @@ public class ServerSide {
                 case 8:
                     return Server_UpdateDrinkStatus(null, false);
                 case 9:
-                    // return empty for now
+                    return Server_InventoryScan();
                 default:
                     System.out.println("Invalid input");
                     break;
@@ -461,8 +461,30 @@ public class ServerSide {
     // Outputs - prints inventory information about all active drinks in the system (drink, location, quantity in stock) or failure message before 
     // returning true or false
     // Purpose - view quantities of drinks in the gym
-    private boolean InventoryScan() {
+    // Implemented by: Codie Aragon
+    private boolean Server_InventoryScan() {
+        String query = """
+                       SELECT id, quantity_in_stock
+                       FROM Drink;
+                       """;
+        try {
+            PreparedStatement statement =  connection.prepareStatement(query);
+            ResultSet result = statement.executeQuery();
 
+            System.out.printf("%n%-5s | %-20s%n", "id", "quantity_in_stock");
+            System.out.println("-------------------------");
+
+            while(result.next()) {
+                int id = result.getInt("id");
+                int quantity = result.getInt("quantity_in_stock");
+
+                System.out.printf("%-5s | %-20s%n", id, quantity);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Query failure: " + e.getMessage() + "\n");
+            return false;
+        }
         return false;
     }
     
