@@ -61,19 +61,12 @@ public class ClientSide {
         return false;
     }
 
-    // Inputs - order number (from supplier), supplier email or NULL, order date, estimated arrival date
+    // Inputs - order number (from supplier), supplier email, order date, estimated arrival date, cost of order, all drinks in the shipment => SKU, 
+    // quantity. The pair (supplierEmail, orderNumber) uniquely identifies a shipment. 
     // Output - prints success or failure (failure == shipment already exists or something went wrong) message before returning true or false
-    // Purpose - allow managers to add new shipment info 
+    // Purpose - allow managers to add new shipment info
+    // combines addshipment and adddrinktoshipment apis 
     public boolean AddShipment() {
-
-        return false;
-    }
-
-    // Inputs - shipment number, drink info for the shipment in the format: name, brand, flavor, or SKU, quantity, cost of purchase
-    // Output - prints success or failure (failure == drink/shipment doesn’t exists or something went wrong)  message before returning true or false
-    // Purpose - allows managers to add actual drinks to a shipment that will added to the inventory upon shipment arrival (drinks must be created 
-    // in system before adding them to shipment)
-    public boolean AddDrinkToShipment() {
 
         return false;
     }
@@ -147,18 +140,10 @@ public class ClientSide {
     }
     
     // Inputs - year
-    // Output - prints information about most profitable month for given year (year, month, profits) or failure (failure == year hasn’t finished or 
-    // something went wrong) message before returning true or false
-    // Purpose - find most profitable month in a year to make business decisions
+    // Output - prints information about most profitable month for given year (month, totalRevenue, totalCost, profit) or failure 
+    // (failure == year hasn’t finished or something went wrong) message before returning true or false
+    // Purpose - Shows profit for each month in the selected year to make business decisions
     public boolean MonthlyProfits() {
-
-        return false;
-    }
-    
-    // Inputs - none
-    // Output - prints information about most profitable year for past 5 years (year, profits) or failure message before returning true or false
-    // Purpose - find most profitable year in a 5 year span to make business decisions
-    public boolean FindMostProfitableYear() {
 
         return false;
     }
@@ -171,18 +156,10 @@ public class ClientSide {
         return false;
     }
     
-    // Inputs - none
-    // Outputs - print information about most costly year in past 5 (year, money spend, margins?) or failure message before returning true or false
-    // Purpose - find most expensive spending year recently for business purposes
-    public boolean FindMostCostlyYear() {
-
-        return false;
-    }
-    
-    // Inputs - none
-    // Outputs - print information about most costly month for the gym from past year (month, money spent, margins?) or failure message before 
-    // returning true or false
-    // Purpose - find the most expensive month in the past year for the gym for business decisions
+    // Inputs - year 
+    // Outputs - print information about most costly month for the gym from the input year(month, totalShipmentCost, totalDrinkUnitsPurchased ) 
+    // or failure message before returning true or false
+    // Purpose - Shows how much money was spent on drink shipments for each month in the selected year.
     public boolean MonthlyCosts() {
 
         return false;
