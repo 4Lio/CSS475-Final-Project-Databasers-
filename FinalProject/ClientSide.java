@@ -164,6 +164,15 @@ public class ClientSide {
 
         return false;
     }
+
+    // Inputs - none
+    // Outputs - list of n members with the most purchases - name, agreement number, purchase count or failure message
+    // Purpose - Identify the members who make the most purchases at the gym to give them rewards, etc.
+    public boolean MostPurchases() {
+        
+        return false;
+    }
+
     
     // Inputs - none
     // Outputs - prints inventory information about all active drinks in the system (drink, location, quantity in stock) or failure message before 

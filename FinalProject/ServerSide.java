@@ -474,4 +474,12 @@ public class ServerSide {
         return false;
     }
 
+    // Inputs - none
+    // Outputs - list of n members with the most purchases - name, agreement number, purchase count or failure message
+    // Purpose - Identify the members who make the most purchases at the gym to give them rewards, etc.
+    private boolean MostPurchases() {
+        
+        return false;
+    }
+
 }
