@@ -465,12 +465,11 @@ public class ServerSide {
                 System.out.printf("%n%-15s | %-20s | %-15s | %-20s%n", brand, flavor, location, quantity);
             }
 
+            return true;
         } catch (SQLException e) {
             System.err.println("Query failure: " + e.getMessage() + "\n");
             return false;
         }
-
-        return false;
     }
 
     // Inputs - none
@@ -504,12 +503,11 @@ public class ServerSide {
                 System.out.printf("%n%-15s | %-15s | %-18s | %-10s%n", first_name, last_name, agreement_number, purchase_count);
             }
 
+            return true;
         } catch (SQLException e) {
             System.err.println("Query failure: " + e.getMessage() + "\n");
             return false;
         }
-
-        return false;
     }
     
     // Inputs - none
