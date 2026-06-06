@@ -52,6 +52,9 @@ public class DriverInterface {
                             case 9:
                                 client.Client_InventoryScan();
                                 break;
+                            case 10:
+                                client.Client_MostPurchases();
+                                break;
                             default:
                                 System.out.println("\nInvalid input\n");
                                 break;

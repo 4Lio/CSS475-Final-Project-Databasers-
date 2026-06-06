@@ -24,6 +24,7 @@ public class ClientSide {
         System.out.println("DrinkStats = 4" + "          MonthlyProfits = 5");
         System.out.println("MonthlyCosts = 6" + "        UpdateDrinkPrice = 7");
         System.out.println("UpdateDrinkStatus = 8" + "   InventoryScan = 9");
+        System.out.println("MostPurchases = 10");
     }
 
     // All public
@@ -164,26 +165,28 @@ public class ClientSide {
 
         return false;
     }
-
-    // Inputs - none
-    // Outputs - list of n members with the most purchases - name, agreement number, purchase count or failure message
-    // Purpose - Identify the members who make the most purchases at the gym to give them rewards, etc.
-    public boolean MostPurchases() {
-        
-        return false;
-    }
-
     
     // Inputs - none
-    // Outputs - prints inventory information about all active drinks in the system (drink, location, quantity in stock) or failure message before 
+    // Outputs - prints inventory information about all active drinks in the system (brand, flavor, location, quantity in stock) or failure message before
     // returning true or false
     // Purpose - view quantities of drinks in the gym
-    // Implemented by: Codie Aragon
     public boolean Client_InventoryScan() {
         ArrayList<String> input = new ArrayList<>();
 
         System.out.println("Scanning inventory...");
         input.add("9");
+        return server.ProcessInput(input);
+    }
+
+    // Inputs - none
+    // Outputs - list of 10 members with the most purchases - name, agreement number, purchase count or failure message
+    // Purpose - Identify the members who make the most purchases at the gym to give them rewards, etc.
+    public boolean Client_MostPurchases() {
+        ArrayList<String> input = new ArrayList<>();
+
+        System.out.println("Scanning most purchases...");
+        input.add("10");
+
         return server.ProcessInput(input);
     }
     

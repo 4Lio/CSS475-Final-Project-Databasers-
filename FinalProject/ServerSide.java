@@ -71,6 +71,8 @@ public class ServerSide {
                     return Server_UpdateDrinkStatus(null, false);
                 case 9:
                     return Server_InventoryScan();
+                case 10:
+                    return Server_MostPurchases();
                 default:
                     System.out.println("Invalid input");
                     break;
@@ -444,14 +446,15 @@ public class ServerSide {
                        SELECT brand, flavor, get_location_name(drinklocationid) AS location, quantity_in_stock
                        FROM Drink D
                            JOIN DrinkCat DC ON (DC.id = D.drinkcatid)
-                       WHERE DC.is_active = true;
+                       WHERE DC.is_active = true
+                       ORDER BY brand, flavor, location;
                        """;
         try {
             PreparedStatement statement =  connection.prepareStatement(query);
             ResultSet result = statement.executeQuery();
 
             System.out.printf("%n%-15s | %-20s | %-15s | %-20s%n", "brand", "flavor", "location", "quantity_in_stock");
-            System.out.println("-----------------------------------------------------------------");
+            System.out.println("----------------------------------------------------------------------------");
 
             while(result.next()) {
                 String brand = result.getString("brand");
@@ -466,6 +469,46 @@ public class ServerSide {
             System.err.println("Query failure: " + e.getMessage() + "\n");
             return false;
         }
+
+        return false;
+    }
+
+    // Inputs - none
+    // Outputs - list of 10 members with the most purchases - name, agreement number, purchase count or failure message
+    // Purpose - Identify the members who make the most purchases at the gym to give them rewards, etc.
+    private boolean Server_MostPurchases() {
+        String query = """
+                       SELECT first_name, last_name, agreement_number, purchase_count
+                       FROM Member M
+                           JOIN (
+                               SELECT memberid, count(*) AS purchase_count
+                               FROM Purchase
+                               GROUP BY memberid
+                           ) AS T1 ON (M.id = T1.memberid)
+                       ORDER BY purchase_count DESC
+                       LIMIT 10;
+                       """;
+        try {
+            PreparedStatement statement =  connection.prepareStatement(query);
+            ResultSet result = statement.executeQuery();
+
+            System.out.printf("%n%-15s | %-15s | %-18s | %-10s%n", "first_name", "last_name", "agreement_number", "purchase_count");
+            System.out.println("-----------------------------------------------------------------------");
+
+            while(result.next()) {
+                String first_name = result.getString("first_name");
+                String last_name = result.getString("last_name");
+                String agreement_number = result.getString("agreement_number");
+                String purchase_count = result.getString("purchase_count");
+
+                System.out.printf("%n%-15s | %-15s | %-18s | %-10s%n", first_name, last_name, agreement_number, purchase_count);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Query failure: " + e.getMessage() + "\n");
+            return false;
+        }
+
         return false;
     }
     
@@ -477,13 +520,4 @@ public class ServerSide {
 
         return false;
     }
-
-    // Inputs - none
-    // Outputs - list of n members with the most purchases - name, agreement number, purchase count or failure message
-    // Purpose - Identify the members who make the most purchases at the gym to give them rewards, etc.
-    private boolean MostPurchases() {
-        
-        return false;
-    }
-
 }
