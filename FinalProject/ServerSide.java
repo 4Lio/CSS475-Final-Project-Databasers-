@@ -435,27 +435,31 @@ public class ServerSide {
     }
     
     // Inputs - none
-    // Outputs - prints inventory information about all active drinks in the system (drink, location, quantity in stock) or failure message before 
+    // Outputs - prints inventory information about all active drinks in the system (brand, flavor, location, quantity in stock) or failure message before
     // returning true or false
     // Purpose - view quantities of drinks in the gym
     // Implemented by: Codie Aragon
     private boolean Server_InventoryScan() {
         String query = """
-                       SELECT id, quantity_in_stock
-                       FROM Drink;
+                       SELECT brand, flavor, get_location_name(drinklocationid) AS location, quantity_in_stock
+                       FROM Drink D
+                           JOIN DrinkCat DC ON (DC.id = D.drinkcatid)
+                       WHERE DC.is_active = true;
                        """;
         try {
             PreparedStatement statement =  connection.prepareStatement(query);
             ResultSet result = statement.executeQuery();
 
-            System.out.printf("%n%-5s | %-20s%n", "id", "quantity_in_stock");
-            System.out.println("-------------------------");
+            System.out.printf("%n%-15s | %-20s | %-15s | %-20s%n", "brand", "flavor", "location", "quantity_in_stock");
+            System.out.println("-----------------------------------------------------------------");
 
             while(result.next()) {
-                int id = result.getInt("id");
+                String brand = result.getString("brand");
+                String flavor = result.getString("flavor");
+                String location = result.getString("location");
                 int quantity = result.getInt("quantity_in_stock");
 
-                System.out.printf("%-5s | %-20s%n", id, quantity);
+                System.out.printf("%n%-15s | %-20s | %-15s | %-20s%n", brand, flavor, location, quantity);
             }
 
         } catch (SQLException e) {
