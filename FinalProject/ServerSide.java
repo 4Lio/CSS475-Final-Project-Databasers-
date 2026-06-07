@@ -1,5 +1,6 @@
 package FinalProject;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -581,7 +582,7 @@ boolean outcome = false;
                 String last_name = result.getString("last_name");
                 Date date = result.getDate("date");
                 int quantity_purchased = result.getInt("quantity_purchased");
-                int total_cost = result.getInt("total_cost");
+                BigDecimal total_cost = result.getBigDecimal("total_cost");
 
                 System.out.printf("%n%-15s | %-20s | %-10s | %-20s | %-15s | %-15s | %-15s%n", purchase_number, memberid, first_name, last_name, date, quantity_purchased, total_cost);
             }
