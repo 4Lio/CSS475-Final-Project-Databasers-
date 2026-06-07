@@ -5,9 +5,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
-
 
 // Talks to database
 public class ServerSide {
@@ -51,7 +51,7 @@ public class ServerSide {
                 case 0:
                     return Server_AddMember(null, null, null);
                 case 1:
-                    return ShipmentArrived();
+                    return Server_ShipmentArrived(params.get(1));
                 case 2:
                     return Server_MoveStock(params.get(1), Integer.parseInt(params.get(2)));
                 case 3:
@@ -59,10 +59,6 @@ public class ServerSide {
                 case 4:
                     return Server_DrinkStats();
                 case 5:
-                        if (params.size() < 2) {
-                            System.out.println("MonthlyProfits failed: missing year.");
-                            return false;
-                        }
                     return Server_MonthlyProfits(Integer.parseInt(params.get(1)));
                 case 6:
                     return Server_MonthlyCosts(Integer.parseInt(params.get(1)));
@@ -189,10 +185,184 @@ public class ServerSide {
     // Output - Prints success message (x quantity added to x drink in x location) for each drink in the shipment, or a failure 
     // (failure == shipment doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow the quantities of drinks in the gym to be updated when the shipment arrives to the gym
-    private boolean ShipmentArrived() {
+    private boolean Server_ShipmentArrived(String orderNumber) {
+boolean outcome = false;
 
+    String findShipmentSql = """
+        SELECT id, arrived_date
+        FROM shipment
+        WHERE order_number = ?
+        FOR UPDATE;
+    """;
+
+    String getStorageLocationSql = """
+        SELECT id
+        FROM drinklocation
+        WHERE name = 'Storage';
+    """;
+
+    String getShipmentItemsSql = """
+        SELECT
+            stdc.drinkcatid,
+            dc.sku,
+            dc.brand,
+            dc.flavor,
+            stdc.quantity_shipped
+        FROM shipmenttodrinkcat stdc
+        JOIN drinkcat dc
+            ON dc.id = stdc.drinkcatid
+        WHERE stdc.shipmentid = ?;
+    """;
+
+    String updateStockSql = """
+        UPDATE drink
+        SET quantity_in_stock = quantity_in_stock + ?
+        WHERE drinkcatid = ?
+          AND drinklocationid = ?;
+    """;
+
+    String insertStockSql = """
+        INSERT INTO drink(drinkcatid, drinklocationid, quantity_in_stock)
+        VALUES (?, ?, ?);
+    """;
+
+    String markArrivedSql = """
+        UPDATE shipment
+        SET arrived_date = CURRENT_TIMESTAMP
+        WHERE id = ?;
+    """;
+
+    try {
+        connection.setAutoCommit(false);
+
+        int shipmentId;
+        Timestamp arrivedDate;
+
+        // 1. Find and lock shipment
+        try (PreparedStatement stmt = connection.prepareStatement(findShipmentSql)) {
+            stmt.setString(1, orderNumber);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    System.out.println("ShipmentArrived failed: shipment order number not found.");
+                    outcome = false;
+                    return false;
+                }
+
+                shipmentId = rs.getInt("id");
+                arrivedDate = rs.getTimestamp("arrived_date");
+
+                if (rs.next()) {
+                    System.out.println("ShipmentArrived failed: multiple shipments have this order number.");
+                    System.out.println("Use supplier email also if order numbers are not unique.");
+                    outcome = false;
+                    return false;
+                }
+            }
+        }
+
+        if (arrivedDate != null) {
+            System.out.println("ShipmentArrived failed: this shipment has already arrived.");
+            outcome = false;
+            return false;
+        }
+
+        // 2. Get Storage location ID
+        int storageLocationId;
+
+        try (PreparedStatement stmt = connection.prepareStatement(getStorageLocationSql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (!rs.next()) {
+                System.out.println("ShipmentArrived failed: Storage location does not exist.");
+                outcome = false;
+                return false;
+            }
+
+            storageLocationId = rs.getInt("id");
+        }
+
+        // 3. Get drinks in shipment and add them to Storage
+        int itemCount = 0;
+
+        try (PreparedStatement itemStmt = connection.prepareStatement(getShipmentItemsSql);
+             PreparedStatement updateStmt = connection.prepareStatement(updateStockSql);
+             PreparedStatement insertStmt = connection.prepareStatement(insertStockSql)) {
+
+            itemStmt.setInt(1, shipmentId);
+
+            try (ResultSet rs = itemStmt.executeQuery()) {
+                while (rs.next()) {
+                    itemCount++;
+
+                    int drinkCatId = rs.getInt("drinkcatid");
+                    String sku = rs.getString("sku");
+                    String brand = rs.getString("brand");
+                    String flavor = rs.getString("flavor");
+                    int quantity = rs.getInt("quantity_shipped");
+
+                    // Try to update existing Storage stock row
+                    updateStmt.setInt(1, quantity);
+                    updateStmt.setInt(2, drinkCatId);
+                    updateStmt.setInt(3, storageLocationId);
+
+                    int rowsUpdated = updateStmt.executeUpdate();
+
+                    // If no existing stock row, create one
+                    if (rowsUpdated == 0) {
+                        insertStmt.setInt(1, drinkCatId);
+                        insertStmt.setInt(2, storageLocationId);
+                        insertStmt.setInt(3, quantity);
+                        insertStmt.executeUpdate();
+                    }
+
+                    System.out.println(quantity + " units added to Storage for "
+                            + sku + " (" + brand + " " + flavor + ")");
+                }
+            }
+        }
+
+        if (itemCount == 0) {
+            System.out.println("ShipmentArrived failed: shipment has no drinks.");
+            outcome = false;
+            return false;
+        }
+
+        // 4. Mark shipment as arrived
+        try (PreparedStatement stmt = connection.prepareStatement(markArrivedSql)) {
+            stmt.setInt(1, shipmentId);
+            stmt.executeUpdate();
+        }
+
+        outcome = true;
+        System.out.println("Shipment " + orderNumber + " marked as arrived.");
+        return true;
+
+    } catch (SQLException e) {
+        System.out.println("ShipmentArrived failed: " + e.getMessage());
+        outcome = false;
         return false;
+
+    } finally {
+        try {
+            if (!connection.getAutoCommit()) {
+                if (outcome) {
+                    connection.commit();
+                } else {
+                    connection.rollback();
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("ShipmentArrived transaction failed: " + e.getMessage());
+        }
+
+        try {
+            connection.setAutoCommit(true);
+        } catch (SQLException e) {
+            System.out.println("Failed to reset auto commit: " + e.getMessage());
+        }
     }
+}
 
     // Server_MoveStock -- Moves stock from storage to display for a drink identified by the SKU
     /* Query used to create functions used in this API:

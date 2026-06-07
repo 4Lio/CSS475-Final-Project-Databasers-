@@ -26,7 +26,7 @@ public class DriverInterface {
                                 client.Client_AddMember();
                                 break;
                             case 1:
-                                //ShipmentArrived();
+                                client.Client_ShipmentArrived();
                                 break;
                             case 2:
                                 client.Client_MoveStock();

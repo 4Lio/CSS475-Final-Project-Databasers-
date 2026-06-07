@@ -75,9 +75,19 @@ public class ClientSide {
     // Output - Prints success message (x quantity added to x drink in x location) for each drink in the shipment, or a failure 
     // (failure == shipment doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow the quantities of drinks in the gym to be updated when the shipment arrives to the gym
-    public boolean ShipmentArrived() {
+    public boolean Client_ShipmentArrived() {
+        String orderNumber = scanner.nextLine().trim();
 
-        return false;
+        if (orderNumber.isEmpty()) {
+            System.out.println("Invalid shipment order number.");
+            return false;
+        }
+
+        ArrayList<String> params = new ArrayList<>();
+        params.add("1");            // API number for ShipmentArrived
+        params.add(orderNumber);    // shipment order number
+
+        return server.ProcessInput(params);
     }
 
     // Needs drink SKU and quantity of drinks to move from storage to display
