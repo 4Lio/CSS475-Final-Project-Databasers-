@@ -57,7 +57,7 @@ public class ClientSide {
 
         if(Double.parseDouble(input.get(2)) <= 0) {
             System.err.println("\nInvalid price\n");
-        return false;
+            return false;
         } else { 
             return server.ProcessInput(input);
         } 
@@ -68,8 +68,26 @@ public class ClientSide {
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
     public boolean Client_UpdateDrinkStatus() {
+        ArrayList<String> input = new ArrayList<>();
+        String SKU;
+        String newStatus;
+        
+        input.add("8");
 
-        return false;
+        System.out.print("Drink SKU: ");
+        SKU = scanner.next();
+        input.add(SKU);
+
+        System.out.print("New drink status (true/false): ");
+        newStatus = scanner.next();
+        
+        if (!newStatus.equals("true") && !newStatus.equals("false")) {
+            System.err.println("Invalid status, must be true or false");
+            return false;
+        }
+
+        input.add(newStatus);
+        return server.ProcessInput(input);
     }
 
     // Inputs - agreement number, first name, last name
