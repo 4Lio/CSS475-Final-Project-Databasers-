@@ -55,7 +55,7 @@ public class ServerSide {
                 case 2:
                     return Server_MoveStock(params.get(1), Integer.parseInt(params.get(2)));
                 case 3:
-                    return Server_MemberSales(null, 0);
+                    return Server_MemberSales(params.get(1), Integer.parseInt(params.get(2)));
                 case 4:
                     return Server_DrinkStats();
                 case 5:
@@ -162,7 +162,7 @@ public class ServerSide {
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
+    // Implemented by: Leo Nguyen
     private boolean Server_UpdateDrinkStatus(String SKU, boolean newStatus) {
         boolean outcome = false;
         boolean valid = false;
@@ -229,7 +229,7 @@ public class ServerSide {
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
+    // Implemented by: Leo Nguyen
     private boolean Server_AddMember(String agreementNum, String firstName, String lastName) {
         boolean outcome = false;
 
@@ -561,33 +561,48 @@ boolean outcome = false;
     // Output - prints info about members sales (purchase number, date, drinks purchased, total cost) OR prints failure (failure == member doesn’t 
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Implementation is unfinished (parameters and query)
-                                                            //                   Not to sure how to grab the price based on date
+    // Implemented by: Leo Nguyen
     private boolean Server_MemberSales(String agreementNum, int numRows) {
-        try {
-            String query = "SELECT purchase_number, Purchase.date, drinkID, quantity_purchased, SUM(sell_price)"
-                         + "FROM Purchase "
-                         + "    JOIN Member ON (Member.ID = Purchase.MemberID "
-                         + "    JOIN DrinkToPurchase ON (DrinkToPurchase.PurchaseID = Purchase.ID) "
-                         + "    JOIN Drink ON (Drink.ID = DrinkToPurchase.DrinkID) "
-                         + "    JOIN DrinkCat ON (DrinkCat.ID = Drink.DrinkCatID) "
-                         + "    JOIN Price ON (Price.ID = DrinkCat.ID) "
-                         + "WHERE agreement_number = ? "
-                         + "LIMIT ? ";
+        boolean output;
 
+        String query = "SELECT Purchase.date, SKU, quantity_purchased, quantity_purchased * sell_price AS \"item_total_cost\" "
+                     + "FROM Purchase "
+                     + "    JOIN Member ON (Member.ID = Purchase.MemberID) "
+                     + "    JOIN DrinkToPurchase ON (DrinkToPurchase.PurchaseID = Purchase.ID) "
+                     + "    JOIN Drink ON (Drink.ID = DrinkToPurchase.DrinkID) "
+                     + "    JOIN DrinkCat ON (DrinkCat.ID = Drink.DrinkCatID) "
+                     + "    JOIN Price ON (Price.DrinkCatID = DrinkCat.ID) "
+                     + "WHERE agreement_number = ? "
+                     + "GROUP BY Purchase.date, SKU, quantity_purchased, sell_price "
+                     + "LIMIT ? ";
+        try {
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
             preparedStatement.setString(1, agreementNum);
             preparedStatement.setInt(2, numRows);
 
-            preparedStatement.executeQuery();
+            System.out.printf("%-20s | %-10s | %-5s | %-10s%n",
+                "date", "SKU", "qty", "item_cost");
+            System.out.println("--------------------------------------------------------------------------------");
 
-            return true;
+            ResultSet result = preparedStatement.executeQuery();
+            while (result.next()) {
+                System.out.printf("%-20s | %-10s | %-5d | %-10s%n",
+                result.getString("date"),
+                result.getString("SKU"),
+                result.getInt("quantity_purchased"),
+                result.getString("item_total_cost"));
+            }
+            System.out.println();
+
+            output = true;
         } catch (SQLException e) {
-            System.out.println("Update failed. Member possibly doesn't exist");
+            System.out.println("Query failed\n");
 
-            return false;
+            output = false;
         }
+
+        return output;
     }
 
     // Inputs -  purchase number

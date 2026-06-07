@@ -180,8 +180,31 @@ public class ClientSide {
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
     public boolean Client_MemberSales() {
+        ArrayList<String> input = new ArrayList<>();
+        String agreementNum;
+        String numRows;
+        
+        input.add("3");
 
-        return false;
+        System.out.print("Agreement number: ");
+        agreementNum = scanner.next();
+        if (!agreementNum.matches("\\d+")) {
+            System.err.println("Invalid agreement number. Must contain only numbers\n");
+            return false;
+        } else {
+            input.add(agreementNum);
+        }
+       
+        System.out.print("Number of rows to display: ");
+        numRows = scanner.next();
+        if (!numRows.matches("\\d+")) {
+            System.err.println("Invalid input. Must contain only numbers\n");
+            return false;
+        } else {
+            input.add(numRows);
+        }
+
+        return server.ProcessInput(input);
     }
 
     // Inputs -  purchase number
