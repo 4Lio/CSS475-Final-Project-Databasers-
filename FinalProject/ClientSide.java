@@ -81,7 +81,7 @@ public class ClientSide {
         newStatus = scanner.next();
         
         if (!newStatus.equals("true") && !newStatus.equals("false")) {
-            System.err.println("Invalid status, must be true or false");
+            System.err.println("Invalid status, must be true or false\n");
             return false;
         }
 
@@ -93,8 +93,31 @@ public class ClientSide {
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
     public boolean Client_AddMember() {
+        ArrayList<String> input = new ArrayList<>();
+        String agreementNum;
+        String firstName;
+        String lastName;
+        
+        input.add("0");
 
-        return false;
+        System.out.print("Agreement number: ");
+        agreementNum = scanner.next();
+        if (!agreementNum.matches("\\d+")) {
+            System.err.println("Invalid agreement number. Must contain only numbers\n");
+            return false;
+        } else {
+            input.add(agreementNum);
+        }
+       
+        System.out.print("First name: ");
+        firstName = scanner.next();
+        input.add(firstName);
+
+        System.out.print("Last name: ");
+        lastName = scanner.next();
+        input.add(lastName);
+
+        return server.ProcessInput(input);
     }
 
     // Inputs - order number (from supplier), supplier email, order date, estimated arrival date, cost of order, all drinks in the shipment => SKU, 

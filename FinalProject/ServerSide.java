@@ -49,7 +49,7 @@ public class ServerSide {
         if(params.size() > 0) {
             switch(Integer.parseInt(params.get(0))) {
                 case 0:
-                    return Server_AddMember(null, null, null);
+                    return Server_AddMember(params.get(1), params.get(2), params.get(3));
                 case 1:
                     return Server_ShipmentArrived(params.get(1));
                 case 2:
@@ -231,11 +231,12 @@ public class ServerSide {
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
     // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
     private boolean Server_AddMember(String agreementNum, String firstName, String lastName) {
-        try {
-            String query = "INSERT INTO Member "
-                         + "VALUES (?, ?, ?) "
-                         + "RETURNING ID";
+        boolean outcome = false;
 
+        String query = "INSERT INTO Member (agreement_number, first_name, last_name) "
+                     + "VALUES (?, ?, ?) "
+                     + "RETURNING ID";
+        try {
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
             preparedStatement.setString(1, agreementNum);
@@ -244,12 +245,16 @@ public class ServerSide {
 
             preparedStatement.executeQuery();
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Update failed. Member possibly already exists");
+            outcome = true;
+            System.out.println("Added member " + firstName + " " + lastName + " on agreement number: " + agreementNum + "\n");
 
-            return false;
+        } catch (SQLException e) {
+            System.out.println("Add failed");
+
+            outcome = false;
         }
+
+        return outcome;
     }
 
     // Inputs - order number (from supplier), supplier email, order date, estimated arrival date, cost of order, all drinks in the shipment => SKU, 
