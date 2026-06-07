@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 
 // Talks to database
 public class ServerSide {
@@ -72,6 +73,8 @@ public class ServerSide {
                     return Server_MostPurchases();
                 case 11:
                     return Server_FindUndeliveredShipments();
+                case 12:
+                    return Server_MostRecentSale();
                 default:
                     System.out.println("Invalid input");
                     break;
@@ -549,12 +552,45 @@ boolean outcome = false;
     }
 
     // Inputs - none
-    // Output - prints info about most recent sale (purchase number, member, date, drinks purchased, total cost) OR prints failure message before 
+    // Output - prints info about most recent sale (purchase number, memberid, first_name, last_name, date, drinks purchased, total cost) OR prints failure message before
     // returning true or false 
     // Purpose - allow the most recent purchase to be viewed
-    private boolean MostRecentSale() {
+    private boolean Server_MostRecentSale() {
+        String query = """
+                       SELECT purchase_number, memberid, first_name, last_name, P.date, quantity_purchased, quantity_purchased * sell_price AS total_cost
+                       FROM Purchase P
+                           JOIN Member M ON (M.id = P.memberid)
+                           JOIN DrinkToPurchase DTP ON (P.id = DTP.drinkid)
+                           JOIN Drink D ON (DTP.drinkid = D.id)
+                           JOIN Price PR ON (D.drinkcatid = PR.drinkcatid)
+                       GROUP BY P.id, M.id, quantity_purchased, sell_price
+                       ORDER BY date DESC
+                       LIMIT 1;
+                       """;
+        try {
+            PreparedStatement statement =  connection.prepareStatement(query);
+            ResultSet result = statement.executeQuery();
 
-        return false;
+            System.out.printf("%n%-15s | %-20s | %-10s | %-20s | %-15s | %-15s | %-15s%n", "purchase_number", "memberid", "first_name", "last_name", "date", "quantity_purchased", "total_cost");
+            System.out.println("-------------------------------------------------------------------------------------------------------------------------------------");
+
+            while(result.next()) {
+                String purchase_number = result.getString("purchase_number");
+                int memberid = result.getInt("memberid");
+                String first_name = result.getString("first_name");
+                String last_name = result.getString("last_name");
+                Date date = result.getDate("date");
+                int quantity_purchased = result.getInt("quantity_purchased");
+                int total_cost = result.getInt("total_cost");
+
+                System.out.printf("%n%-15s | %-20s | %-10s | %-20s | %-15s | %-15s | %-15s%n", purchase_number, memberid, first_name, last_name, date, quantity_purchased, total_cost);
+            }
+
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Query failure: " + e.getMessage() + "\n");
+            return false;
+        }
     }
     
     // Inputs - member agreement number, number of rows (sales) they want returned
