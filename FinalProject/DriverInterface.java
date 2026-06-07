@@ -38,10 +38,10 @@ public class DriverInterface {
                                 client.Client_DrinkStats();
                                 break;
                             case 5:
-                                //MonthlyProfits();
+                                client.Client_MonthlyProfits();
                                 break;
                             case 6:
-                                //MonthlyCosts();
+                                client.Client_MonthlyCosts();
                                 break;
                             case 7:
                                 client.Client_UpdateDrinkPrice();
@@ -54,6 +54,9 @@ public class DriverInterface {
                                 break;
                             case 10:
                                 client.Client_MostPurchases();
+                                break;
+                            case 11:
+                                client.Client_FindUndeliveredShipments();
                                 break;
                             default:
                                 System.out.println("\nInvalid input\n");

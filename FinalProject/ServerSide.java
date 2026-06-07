@@ -4,9 +4,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 
 
@@ -60,11 +59,13 @@ public class ServerSide {
                 case 4:
                     return Server_DrinkStats();
                 case 5:
-                    // return MonthlyProfits();
-                    break;
+                        if (params.size() < 2) {
+                            System.out.println("MonthlyProfits failed: missing year.");
+                            return false;
+                        }
+                    return Server_MonthlyProfits(Integer.parseInt(params.get(1)));
                 case 6:
-                    //return MonthlyCosts();
-                    break;
+                    return Server_MonthlyCosts(Integer.parseInt(params.get(1)));
                 case 7:
                     return Server_UpdateDrinkPrice(null, 0);
                 case 8:
@@ -73,6 +74,8 @@ public class ServerSide {
                     return Server_InventoryScan();
                 case 10:
                     return Server_MostPurchases();
+                case 11:
+                    return Server_FindUndeliveredShipments();
                 default:
                     System.out.println("Invalid input");
                     break;
@@ -410,31 +413,221 @@ public class ServerSide {
         }
     }
     
-    // Inputs - year
-    // Output - prints information about most profitable month for given year (month, totalRevenue, totalCost, profit) or failure 
-    // (failure == year hasn’t finished or something went wrong) message before returning true or false
-    // Purpose - Shows profit for each month in the selected year to make business decisions
-    private boolean MonthlyProfits() {
+// Inputs - year
+// Outputs - prints month, total units sold, and total revenue
+// Purpose - Shows how much revenue was made from drink sales for each month
+//           in the selected year.
+public boolean Server_MonthlyProfits(int year) {
 
+    String revenueSql = """
+        SELECT
+            COALESCE(SUM(dtp.quantity_purchased), 0) AS units_sold,
+            COALESCE(SUM(dtp.quantity_purchased * get_price(dc.id)::numeric), 0) AS total_revenue
+        FROM purchase p
+        JOIN drinktopurchase dtp
+            ON dtp.purchaseid = p.id
+        JOIN drink d
+            ON d.id = dtp.drinkid
+        JOIN drinkcat dc
+            ON dc.id = d.drinkcatid
+        WHERE p.date >= ?
+          AND p.date < ?
+          AND COALESCE(p.void_purchase, false) = false;
+    """;
+
+    try (PreparedStatement stmt = connection.prepareStatement(revenueSql)) {
+
+        boolean found = false;
+
+        System.out.println("Monthly Revenue for " + year);
+        System.out.println("---------------------------------------------");
+        System.out.printf("%-10s %-15s %-20s%n",
+                "Month", "Units Sold", "Total Revenue");
+
+        for (int month = 1; month <= 12; month++) {
+
+            LocalDate startDate = LocalDate.of(year, month, 1);
+            LocalDate endDate = startDate.plusMonths(1);
+
+            stmt.setDate(1, java.sql.Date.valueOf(startDate));
+            stmt.setDate(2, java.sql.Date.valueOf(endDate));
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int unitsSold = rs.getInt("units_sold");
+                    double totalRevenue = rs.getDouble("total_revenue");
+
+                    if (unitsSold > 0 || totalRevenue > 0) {
+                        found = true;
+
+                        System.out.printf("%-10d %-15d $%-19.2f%n",
+                                month,
+                                unitsSold,
+                                totalRevenue);
+                    }
+                }
+            }
+        }
+
+        if (!found) {
+            System.out.println("No revenue records found for year " + year + ".");
+            return false;
+        }
+
+        return true;
+
+    } catch (SQLException e) {
+        System.out.println("MonthlyRevenue failed: " + e.getMessage());
         return false;
     }
+}
     
     // Inputs - none
     // Output - prints information about any shipments in the system not yet delivered or failure message before returning true or false
     // Purpose - find any missing shipments or solve stock discrepancies in the system
-    private boolean FindUndeliveredShipments() {
+    private boolean Server_FindUndeliveredShipments() {
+    String query = """
+        SELECT
+            s.order_number AS order_number,
+            sup.name AS supplier_name,
+            sup.email AS supplier_email,
+            s.order_date AS order_date,
+            s.estimated_arrival_date AS estimated_arrival_date
+        FROM shipment s
+        JOIN supplier sup ON s.supplierid = sup.id
+        WHERE s.arrived_date IS NULL
+        ORDER BY s.estimated_arrival_date;
+    """;
 
+    try (PreparedStatement stmt = connection.prepareStatement(query);
+         ResultSet rs = stmt.executeQuery()) {
+
+        boolean found = false;
+
+        System.out.println("Undelivered Shipments");
+        System.out.println("--------------------------------------------------------------------------------");
+        System.out.printf("%-20s %-20s %-25s %-20s %-20s%n",
+                "Order Number",
+                "Supplier",
+                "Supplier Email",
+                "Order Date",
+                "Estimated Arrival");
+
+        while (rs.next()) {
+            found = true;
+
+            String orderNumber = rs.getString("order_number");
+            String supplierName = rs.getString("supplier_name");
+            String supplierEmail = rs.getString("supplier_email");
+            String orderDate = rs.getString("order_date");
+            String estimatedArrivalDate = rs.getString("estimated_arrival_date");
+
+            System.out.printf("%-20s %-20s %-25s %-20s %-20s%n",
+                    orderNumber,
+                    supplierName,
+                    supplierEmail,
+                    orderDate,
+                    estimatedArrivalDate);
+        }
+
+        if (!found) {
+            System.out.println("No undelivered shipments found.");
+        }
+
+        return true;
+
+    } catch (SQLException e) {
+        System.out.println("UndeliveredShipments failed: " + e.getMessage());
         return false;
     }
+}
     
-    // Inputs - year
-    // Outputs - print information about most costly month for the gym from the input year(month, totalShipmentCost, totalDrinkUnitsPurchased ) 
-    // or failure message before returning true or false
-    // Purpose - Shows how much money was spent on drink shipments for each month in the selected year.
-    private boolean MonthlyCosts() {
+// Inputs - year
+// Outputs - prints month, shipment count, total shipment cost, total drink units purchased
+// Purpose - Shows how much money was spent on drink shipments for each month
+//           in the selected year.
+public boolean Server_MonthlyCosts(int year) {
 
+    String shipmentCostSql = """
+        SELECT
+            COUNT(*) AS shipment_count,
+            COALESCE(SUM(shipment_cost::numeric), 0) AS total_cost
+        FROM shipment
+        WHERE order_date >= ?
+          AND order_date < ?;
+    """;
+
+    String unitsSql = """
+        SELECT
+            COALESCE(SUM(stdc.quantity_shipped), 0) AS total_units
+        FROM shipment s
+        JOIN shipmenttodrinkcat stdc
+            ON stdc.shipmentid = s.id
+        WHERE s.order_date >= ?
+          AND s.order_date < ?;
+    """;
+
+    try (PreparedStatement shipmentStmt = connection.prepareStatement(shipmentCostSql);
+         PreparedStatement unitsStmt = connection.prepareStatement(unitsSql)) {
+
+        boolean found = false;
+
+        System.out.println("Monthly Costs for " + year);
+        System.out.println("------------------------------------------------------------");
+        System.out.printf("%-10s %-18s %-20s %-20s%n",
+                "Month", "Shipments", "Total Cost", "Units Purchased");
+
+        for (int month = 1; month <= 12; month++) {
+
+            LocalDate startDate = LocalDate.of(year, month, 1);
+            LocalDate endDate = startDate.plusMonths(1);
+
+            shipmentStmt.setDate(1, java.sql.Date.valueOf(startDate));
+            shipmentStmt.setDate(2, java.sql.Date.valueOf(endDate));
+
+            unitsStmt.setDate(1, java.sql.Date.valueOf(startDate));
+            unitsStmt.setDate(2, java.sql.Date.valueOf(endDate));
+
+            int shipmentCount = 0;
+            double totalCost = 0.0;
+            int totalUnits = 0;
+
+            try (ResultSet rs = shipmentStmt.executeQuery()) {
+                if (rs.next()) {
+                    shipmentCount = rs.getInt("shipment_count");
+                    totalCost = rs.getDouble("total_cost");
+                }
+            }
+
+            try (ResultSet rs = unitsStmt.executeQuery()) {
+                if (rs.next()) {
+                    totalUnits = rs.getInt("total_units");
+                }
+            }
+
+            if (shipmentCount > 0 || totalUnits > 0 || totalCost > 0) {
+                found = true;
+
+                System.out.printf("%-10d %-18d $%-19.2f %-20d%n",
+                        month,
+                        shipmentCount,
+                        totalCost,
+                        totalUnits);
+            }
+        }
+
+        if (!found) {
+            System.out.println("No shipment cost records found for year " + year + ".");
+            return false;
+        }
+
+        return true;
+
+    } catch (SQLException e) {
+        System.out.println("MonthlyCosts failed: " + e.getMessage());
         return false;
     }
+}
     
     // Inputs - none
     // Outputs - prints inventory information about all active drinks in the system (brand, flavor, location, quantity in stock) or failure message before
