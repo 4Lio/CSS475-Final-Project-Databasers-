@@ -66,7 +66,7 @@ public class ServerSide {
                     //return MonthlyCosts();
                     break;
                 case 7:
-                    return Server_UpdateDrinkPrice(null, 0);
+                    return Server_UpdateDrinkPrice(params.get(1), Double.parseDouble(params.get(2)));
                 case 8:
                     return Server_UpdateDrinkStatus(null, false);
                 case 9:
@@ -94,30 +94,69 @@ public class ServerSide {
     // Inputs - SKU or name, brand, flavor, new price
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Name, brand, and flavor are not needed?
-                                                            //                   Check Chenault's comments on schema revisions
-                                                            //
-                                                            //                   We might need a date parameter if we only want to
+    // Implemented by: Leo Nguyen                           // IMPLEMENTOR NOTE: We might need a date parameter if we only want to
                                                             //                   update the price of a drink at a certain shipment date
     private boolean Server_UpdateDrinkPrice(String SKU, double price) {
-        try {
-            String query = "UPDATE Price "
-                         + "SET sell_price = ? "
-                         + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?";
+        boolean outcome = false;
+        boolean valid = false;
 
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
+        String query1 = "SELECT sell_price "
+                      + "FROM Price "
+                      + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?) "
+                      + "FOR UPDATE";
 
-            preparedStatement.setDouble(1, price);
-            preparedStatement.setString(2, SKU);
+        String query2 = "UPDATE Price "
+                      + "SET sell_price = ?::numeric::money "
+                      + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?)";
 
-            preparedStatement.executeQuery();
+        try(PreparedStatement preparedStatement = connection.prepareStatement(query1)) {
+            connection.setAutoCommit(false);
+            preparedStatement.setString(1, SKU);
 
-            return true;
+            try(ResultSet result = preparedStatement.executeQuery()) {
+                if(result.next()) {
+                      valid = true;
+                }    
+            }
+
+            if(valid) { 
+                try(PreparedStatement preparedStatement2 = connection.prepareStatement(query2)) {
+                    preparedStatement2.setDouble(1, price);
+                    preparedStatement2.setString(2, SKU);
+                    preparedStatement2.executeUpdate();
+                    outcome = true;
+                }
+            } else {
+                System.err.println("\nBad input\n");
+                outcome = false;
+            }
+        } catch(SQLException e) {
+             System.err.println("\nQuery failure: " + e.getMessage() + "\n");
+             outcome = false;
+        } finally {
+            try {
+                if(connection.getAutoCommit() == false) {
+                    if(outcome) {   // if all was a success/queries went through
+                        System.out.println("Price of Drink SKU: " + SKU + " has been changed to $" + price + "\n");
+                        connection.commit();
+                    }
+                    else {  // some failure in query
+                        connection.rollback();
+                    }
+                }
         } catch (SQLException e) {
-            System.out.println("Update failed. Possibly invalid SKU");
+                System.err.println("\nCommit failure: " + e.getMessage());
+            }
 
-            return false;
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.err.println("\nConnection failure resetting auto-commit: " + e.getMessage());
+                outcome = false;
         }
+        }
+
+        return outcome;
     }
     
     // Inputs - SKU or name, brand, flavor, new isActive status (true or false)

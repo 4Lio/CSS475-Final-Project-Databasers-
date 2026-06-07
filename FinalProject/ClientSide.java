@@ -41,8 +41,26 @@ public class ClientSide {
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
     public boolean Client_UpdateDrinkPrice() {
+        ArrayList<String> input = new ArrayList<>();
+        String SKU;
+        String price;
+        
+        input.add("7");
 
+        System.out.print("Drink SKU: ");
+        SKU = scanner.next();
+        input.add(SKU);
+
+        System.out.print("New drink price: ");
+        price = scanner.next();
+        input.add(price);
+
+        if(Double.parseDouble(input.get(2)) <= 0) {
+            System.err.println("\nInvalid price\n");
         return false;
+        } else { 
+            return server.ProcessInput(input);
+        } 
     }
     
     // Inputs - SKU or name, brand, flavor, new isActive status (true or false)
