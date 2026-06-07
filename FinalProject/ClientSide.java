@@ -24,6 +24,7 @@ public class ClientSide {
         System.out.println("MonthlyCosts = 6" + "        UpdateDrinkPrice = 7");
         System.out.println("UpdateDrinkStatus = 8" + "   InventoryScan = 9");
         System.out.println("MostPurchases = 10" + "      FindUndeliveredShipments = 11");
+        System.out.println("MostRecentSale = 12");
     }
 
     // All public
@@ -170,9 +171,13 @@ public class ClientSide {
     // Output - prints info about most recent sale (purchase number, member, date, drinks purchased, total cost) OR prints failure message before 
     // returning true or false 
     // Purpose - allow the most recent purchase to be viewed
-    public boolean MostRecentSale() {
+    public boolean Client_MostRecentSale() {
+        ArrayList<String> input = new ArrayList<>();
 
-        return false;
+        System.out.println("Scanning most recent sale...");
+        input.add("12");
+
+        return server.ProcessInput(input);
     }
     
     // Inputs - member agreement number, number of rows (sales) they want returned
