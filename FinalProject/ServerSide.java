@@ -561,7 +561,7 @@ boolean outcome = false;
                        SELECT purchase_number, memberid, first_name, last_name, P.date, quantity_purchased, quantity_purchased * sell_price AS total_cost
                        FROM Purchase P
                            JOIN Member M ON (M.id = P.memberid)
-                           JOIN DrinkToPurchase DTP ON (P.id = DTP.drinkid)
+                           JOIN DrinkToPurchase DTP ON (P.id = DTP.purchaseid)
                            JOIN Drink D ON (DTP.drinkid = D.id)
                            JOIN Price PR ON (D.drinkcatid = PR.drinkcatid)
                        GROUP BY P.id, M.id, quantity_purchased, sell_price
