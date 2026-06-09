@@ -635,71 +635,106 @@ public class ServerSide {
         }
     }
     
-    // Purpose - Shows how much revenue was made from drink sales for each month in the selected year.
-    public boolean Server_MonthlyProfits(int year) {
+    // Purpose - Shows estimated profit for each month in the selected year.
+// Estimated profit = monthly sales revenue - monthly shipment cost.
+public boolean Server_MonthlyProfits(int year) {
 
-        String revenueSql = """
-            SELECT
-                COALESCE(SUM(dtp.quantity_purchased), 0) AS units_sold,
-                COALESCE(SUM(dtp.quantity_purchased * get_price(dc.id)::numeric), 0) AS total_revenue
-            FROM purchase p
-            JOIN drinktopurchase dtp
-                ON dtp.purchaseid = p.id
-            JOIN drink d
-                ON d.id = dtp.drinkid
-            JOIN drinkcat dc
-                ON dc.id = d.drinkcatid
-            WHERE p.date >= ?
-            AND p.date < ?
-            AND COALESCE(p.void_purchase, false) = false;
-        """;
+    String revenueSql = """
+        SELECT
+            COALESCE(SUM(dtp.quantity_purchased), 0) AS units_sold,
+            COALESCE(SUM(dtp.quantity_purchased * get_price(dc.id)::numeric), 0) AS total_revenue
+        FROM purchase p
+        JOIN drinktopurchase dtp
+            ON dtp.purchaseid = p.id
+        JOIN drink d
+            ON d.id = dtp.drinkid
+        JOIN drinkcat dc
+            ON dc.id = d.drinkcatid
+        WHERE p.date >= ?
+          AND p.date < ?
+          AND COALESCE(p.void_purchase, false) = false;
+    """;
 
-        try (PreparedStatement stmt = connection.prepareStatement(revenueSql)) {
+    String costSql = """
+        SELECT
+            COUNT(*) AS shipment_count,
+            COALESCE(SUM(shipment_cost::numeric), 0) AS total_cost
+        FROM shipment
+        WHERE order_date >= ?
+          AND order_date < ?;
+    """;
 
-            boolean found = false;
+    try (PreparedStatement revenueStmt = connection.prepareStatement(revenueSql);
+         PreparedStatement costStmt = connection.prepareStatement(costSql)) {
 
-            System.out.println("Monthly Revenue for " + year);
-            System.out.println("---------------------------------------------");
-            System.out.printf("%-10s %-15s %-20s%n",
-                    "Month", "Units Sold", "Total Revenue");
+        boolean found = false;
 
-            for (int month = 1; month <= 12; month++) {
+        System.out.println("Monthly Estimated Profits for " + year);
+        System.out.println("-------------------------------------------------------------------------------");
+        System.out.printf("%-10s %-15s %-18s %-18s %-18s%n",
+                "Month", "Units Sold", "Revenue", "Shipment Cost", "Profit");
 
-                LocalDate startDate = LocalDate.of(year, month, 1);
-                LocalDate endDate = startDate.plusMonths(1);
+        for (int month = 1; month <= 12; month++) {
 
-                stmt.setDate(1, java.sql.Date.valueOf(startDate));
-                stmt.setDate(2, java.sql.Date.valueOf(endDate));
+            LocalDate startDate = LocalDate.of(year, month, 1);
+            LocalDate endDate = startDate.plusMonths(1);
 
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        int unitsSold = rs.getInt("units_sold");
-                        double totalRevenue = rs.getDouble("total_revenue");
+            // Set date range for revenue query
+            revenueStmt.setDate(1, java.sql.Date.valueOf(startDate));
+            revenueStmt.setDate(2, java.sql.Date.valueOf(endDate));
 
-                        if (unitsSold > 0 || totalRevenue > 0) {
-                            found = true;
+            // Set date range for cost query
+            costStmt.setDate(1, java.sql.Date.valueOf(startDate));
+            costStmt.setDate(2, java.sql.Date.valueOf(endDate));
 
-                            System.out.printf("%-10d %-15d $%-19.2f%n",
-                                    month,
-                                    unitsSold,
-                                    totalRevenue);
-                        }
-                    }
+            int unitsSold = 0;
+            double totalRevenue = 0.0;
+            int shipmentCount = 0;
+            double totalCost = 0.0;
+
+            // 1. Get monthly revenue
+            try (ResultSet rs = revenueStmt.executeQuery()) {
+                if (rs.next()) {
+                    unitsSold = rs.getInt("units_sold");
+                    totalRevenue = rs.getDouble("total_revenue");
                 }
             }
 
-            if (!found) {
-                System.out.println("No revenue records found for year " + year + ".");
-                return false;
+            // 2. Get monthly shipment cost
+            try (ResultSet rs = costStmt.executeQuery()) {
+                if (rs.next()) {
+                    shipmentCount = rs.getInt("shipment_count");
+                    totalCost = rs.getDouble("total_cost");
+                }
             }
 
-            return true;
+            double profit = totalRevenue - totalCost;
 
-        } catch (SQLException e) {
-            System.out.println("MonthlyRevenue failed: " + e.getMessage());
+            // Print only months that have revenue or shipment costs
+            if (unitsSold > 0 || totalRevenue > 0 || shipmentCount > 0 || totalCost > 0) {
+                found = true;
+
+                System.out.printf("%-10d %-15d $%-17.2f $%-17.2f $%-17.2f%n",
+                        month,
+                        unitsSold,
+                        totalRevenue,
+                        totalCost,
+                        profit);
+            }
+        }
+
+        if (!found) {
+            System.out.println("No revenue or cost records found for year " + year + ".");
             return false;
         }
+
+        return true;
+
+    } catch (SQLException e) {
+        System.out.println("MonthlyProfits failed: " + e.getMessage());
+        return false;
     }
+}
         
     // Purpose - find any missing shipments or solve stock discrepancies in the system
     private boolean Server_FindUndeliveredShipments() {
