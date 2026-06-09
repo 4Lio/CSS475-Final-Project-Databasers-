@@ -1,5 +1,6 @@
 package FinalProject;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -8,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 
 // Talks to database
 public class ServerSide {
@@ -49,13 +51,13 @@ public class ServerSide {
         if(params.size() > 0) {
             switch(Integer.parseInt(params.get(0))) {
                 case 0:
-                    return Server_AddMember(null, null, null);
+                    return Server_AddMember(params.get(1), params.get(2), params.get(3));
                 case 1:
                     return Server_ShipmentArrived(params.get(1));
                 case 2:
                     return Server_MoveStock(params.get(1), Integer.parseInt(params.get(2)));
                 case 3:
-                    return Server_MemberSales(null, 0);
+                    return Server_MemberSales(params.get(1), Integer.parseInt(params.get(2)));
                 case 4:
                     return Server_DrinkStats();
                 case 5:
@@ -63,15 +65,17 @@ public class ServerSide {
                 case 6:
                     return Server_MonthlyCosts(Integer.parseInt(params.get(1)));
                 case 7:
-                    return Server_UpdateDrinkPrice(null, 0);
+                    return Server_UpdateDrinkPrice(params.get(1), Double.parseDouble(params.get(2)));
                 case 8:
-                    return Server_UpdateDrinkStatus(null, false);
+                    return Server_UpdateDrinkStatus(params.get(1), Boolean.parseBoolean(params.get(2)));
                 case 9:
                     return Server_InventoryScan();
                 case 10:
                     return Server_MostPurchases();
                 case 11:
                     return Server_FindUndeliveredShipments();
+                case 12:
+                    return Server_MostRecentSale();
                 default:
                     System.out.println("Invalid input");
                     break;
@@ -93,68 +97,150 @@ public class ServerSide {
     // Inputs - SKU or name, brand, flavor, new price
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Name, brand, and flavor are not needed?
-                                                            //                   Check Chenault's comments on schema revisions
-                                                            //
-                                                            //                   We might need a date parameter if we only want to
-                                                            //                   update the price of a drink at a certain shipment date
+    // Implemented by: Leo Nguyen                           // IMPLEMENTOR NOTE: We might need a date parameter if we only want to
+                                                            //                   update the price of a drink at a certain shipment date                
     private boolean Server_UpdateDrinkPrice(String SKU, double price) {
-        try {
-            String query = "UPDATE Price "
-                         + "SET sell_price = ? "
-                         + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?";
+        boolean outcome = false;
+        boolean valid = false;
 
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
+        String query1 = "SELECT sell_price "
+                      + "FROM Price "
+                      + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?) "
+                      + "FOR UPDATE";
 
-            preparedStatement.setDouble(1, price);
-            preparedStatement.setString(2, SKU);
+        String query2 = "UPDATE Price "
+                      + "SET sell_price = ?::numeric::money "
+                      + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?)";
+               
+        try(PreparedStatement preparedStatement = connection.prepareStatement(query1)) {
+            connection.setAutoCommit(false);
+            preparedStatement.setString(1, SKU);
 
-            preparedStatement.executeQuery();
+            try(ResultSet result = preparedStatement.executeQuery()) {
+                if(result.next()) {
+                      valid = true;
+                }    
+            }
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Update failed. Possibly invalid SKU");
+            if(valid) { 
+                try(PreparedStatement preparedStatement2 = connection.prepareStatement(query2)) {
+                    preparedStatement2.setDouble(1, price);
+                    preparedStatement2.setString(2, SKU);
+                    preparedStatement2.executeUpdate();
+                    outcome = true;
+                }
+            } else {
+                System.err.println("\nBad input\n");
+                outcome = false;
+            }
+        } catch(SQLException e) {
+             System.err.println("\nQuery failure: " + e.getMessage() + "\n");
+             outcome = false;
+        } finally {
+            try {
+                if(connection.getAutoCommit() == false) {
+                    if(outcome) {   // if all was a success/queries went through
+                        System.out.println("Price of Drink SKU: " + SKU + " has been changed to $" + price + "\n");
+                        connection.commit();
+                    }
+                    else {  // some failure in query
+                        connection.rollback();
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("\nCommit failure: " + e.getMessage());
+            }
 
-            return false;
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.err.println("\nConnection failure resetting auto-commit: " + e.getMessage());
+                outcome = false;
+            }
         }
+
+        return outcome;
     }
     
     // Inputs - SKU or name, brand, flavor, new isActive status (true or false)
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong) message before returning true or false
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
+    // Implemented by: Leo Nguyen
     private boolean Server_UpdateDrinkStatus(String SKU, boolean newStatus) {
-        try {
-            String query = "UPDATE DrinkCat "
-                         + "SET is_active = ? "
-                         + "WHERE SKU = ?";
+        boolean outcome = false;
+        boolean valid = false;
 
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
+        String query1 = "SELECT is_active "
+                      + "FROM drinkcat "
+                      + "WHERE ID = (SELECT ID FROM DrinkCat WHERE SKU = ?) "
+                      + "FOR UPDATE";
 
-            preparedStatement.setBoolean(1, newStatus);
-            preparedStatement.setString(2, SKU);
+        String query2 = "UPDATE DrinkCat "
+                      + "SET is_active = ? "
+                      + "WHERE SKU = ?";
+        
+        try(PreparedStatement preparedStatement = connection.prepareStatement(query1)) {
+            connection.setAutoCommit(false);
+            preparedStatement.setString(1, SKU);
 
-            preparedStatement.executeQuery();
+            try(ResultSet result = preparedStatement.executeQuery()) {
+                if(result.next()) {
+                      valid = true;
+                }    
+            }
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Update failed. Possibly invalid SKU");
+            if(valid) { 
+                try(PreparedStatement preparedStatement2 = connection.prepareStatement(query2)) {
+                    preparedStatement2.setBoolean(1, newStatus);
+                    preparedStatement2.setString(2, SKU);
+                    preparedStatement2.executeUpdate();
+                    outcome = true;
+                }
+            } else {
+                System.err.println("\nBad input\n");
+                outcome = false;
+            }
+        } catch(SQLException e) {
+             System.err.println("\nQuery failure: " + e.getMessage() + "\n");
+             outcome = false;
+        } finally {
+            try {
+                if(connection.getAutoCommit() == false) {
+                    if(outcome) {   // if all was a success/queries went through
+                        System.out.println("is_Active status of Drink SKU: " + SKU + " has been changed to " + newStatus + "\n");
+                        connection.commit();
+                    }
+                    else {  // some failure in query
+                        connection.rollback();
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("\nCommit failure: " + e.getMessage());
+            }
 
-            return false;
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException e) {
+                System.err.println("\nConnection failure resetting auto-commit: " + e.getMessage());
+                outcome = false;
+            }
         }
+
+        return outcome;
     }
 
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED
+    // Implemented by: Leo Nguyen
     private boolean Server_AddMember(String agreementNum, String firstName, String lastName) {
-        try {
-            String query = "INSERT INTO Member "
-                         + "VALUES (?, ?, ?) "
-                         + "RETURNING ID";
+        boolean outcome = false;
 
+        String query = "INSERT INTO Member (agreement_number, first_name, last_name) "
+                     + "VALUES (?, ?, ?) "
+                     + "RETURNING ID";
+        try {
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
             preparedStatement.setString(1, agreementNum);
@@ -163,12 +249,16 @@ public class ServerSide {
 
             preparedStatement.executeQuery();
 
-            return true;
-        } catch (SQLException e) {
-            System.out.println("Update failed. Member possibly already exists");
+            outcome = true;
+            System.out.println("Added member " + firstName + " " + lastName + " on agreement number: " + agreementNum + "\n");
 
-            return false;
+        } catch (SQLException e) {
+            System.out.println("Add failed");
+
+            outcome = false;
         }
+
+        return outcome;
     }
 
     // Inputs - order number (from supplier), supplier email, order date, estimated arrival date, cost of order, all drinks in the shipment => SKU, 
@@ -463,45 +553,93 @@ boolean outcome = false;
     }
 
     // Inputs - none
-    // Output - prints info about most recent sale (purchase number, member, date, drinks purchased, total cost) OR prints failure message before 
+    // Output - prints info about most recent sale (purchase number, memberid, first_name, last_name, date, drinks purchased, total cost) OR prints failure message before
     // returning true or false 
     // Purpose - allow the most recent purchase to be viewed
-    private boolean MostRecentSale() {
+    private boolean Server_MostRecentSale() {
+        String query = """
+                       SELECT purchase_number, memberid, first_name, last_name, P.date, quantity_purchased, quantity_purchased * sell_price AS total_cost
+                       FROM Purchase P
+                           JOIN Member M ON (M.id = P.memberid)
+                           JOIN DrinkToPurchase DTP ON (P.id = DTP.purchaseid)
+                           JOIN Drink D ON (DTP.drinkid = D.id)
+                           JOIN Price PR ON (D.drinkcatid = PR.drinkcatid)
+                       GROUP BY P.id, M.id, quantity_purchased, sell_price
+                       ORDER BY date DESC
+                       LIMIT 1;
+                       """;
+        try {
+            PreparedStatement statement =  connection.prepareStatement(query);
+            ResultSet result = statement.executeQuery();
 
-        return false;
+            System.out.printf("%n%-15s | %-20s | %-10s | %-20s | %-15s | %-15s | %-15s%n", "purchase_number", "memberid", "first_name", "last_name", "date", "quantity_purchased", "total_cost");
+            System.out.println("-------------------------------------------------------------------------------------------------------------------------------------");
+
+            while(result.next()) {
+                String purchase_number = result.getString("purchase_number");
+                int memberid = result.getInt("memberid");
+                String first_name = result.getString("first_name");
+                String last_name = result.getString("last_name");
+                Date date = result.getDate("date");
+                int quantity_purchased = result.getInt("quantity_purchased");
+                BigDecimal total_cost = result.getBigDecimal("total_cost");
+
+                System.out.printf("%n%-15s | %-20s | %-10s | %-20s | %-15s | %-15s | %-15s%n", purchase_number, memberid, first_name, last_name, date, quantity_purchased, total_cost);
+            }
+
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Query failure: " + e.getMessage() + "\n");
+            return false;
+        }
     }
     
     // Inputs - member agreement number, number of rows (sales) they want returned
     // Output - prints info about members sales (purchase number, date, drinks purchased, total cost) OR prints failure (failure == member doesn’t 
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
-    // Implemented by: Leo Nguyen; FUNCTION IS UNTESTED     // IMPLEMENTOR NOTE: Implementation is unfinished (parameters and query)
-                                                            //                   Not to sure how to grab the price based on date
+    // Implemented by: Leo Nguyen
     private boolean Server_MemberSales(String agreementNum, int numRows) {
-        try {
-            String query = "SELECT purchase_number, Purchase.date, drinkID, quantity_purchased, SUM(sell_price)"
-                         + "FROM Purchase "
-                         + "    JOIN Member ON (Member.ID = Purchase.MemberID "
-                         + "    JOIN DrinkToPurchase ON (DrinkToPurchase.PurchaseID = Purchase.ID) "
-                         + "    JOIN Drink ON (Drink.ID = DrinkToPurchase.DrinkID) "
-                         + "    JOIN DrinkCat ON (DrinkCat.ID = Drink.DrinkCatID) "
-                         + "    JOIN Price ON (Price.ID = DrinkCat.ID) "
-                         + "WHERE agreement_number = ? "
-                         + "LIMIT ? ";
+        boolean output;
 
+        String query = "SELECT Purchase.date, SKU, quantity_purchased, quantity_purchased * sell_price AS \"item_total_cost\" "
+                     + "FROM Purchase "
+                     + "    JOIN Member ON (Member.ID = Purchase.MemberID) "
+                     + "    JOIN DrinkToPurchase ON (DrinkToPurchase.PurchaseID = Purchase.ID) "
+                     + "    JOIN Drink ON (Drink.ID = DrinkToPurchase.DrinkID) "
+                     + "    JOIN DrinkCat ON (DrinkCat.ID = Drink.DrinkCatID) "
+                     + "    JOIN Price ON (Price.DrinkCatID = DrinkCat.ID) "
+                     + "WHERE agreement_number = ? "
+                     + "GROUP BY Purchase.date, SKU, quantity_purchased, sell_price "
+                     + "LIMIT ? ";
+        try {
             PreparedStatement preparedStatement = connection.prepareStatement(query);
 
             preparedStatement.setString(1, agreementNum);
             preparedStatement.setInt(2, numRows);
 
-            preparedStatement.executeQuery();
+            System.out.printf("%-20s | %-10s | %-5s | %-10s%n",
+                "date", "SKU", "qty", "item_cost");
+            System.out.println("--------------------------------------------------------------------------------");
 
-            return true;
+            ResultSet result = preparedStatement.executeQuery();
+            while (result.next()) {
+                System.out.printf("%-20s | %-10s | %-5d | %-10s%n",
+                result.getString("date"),
+                result.getString("SKU"),
+                result.getInt("quantity_purchased"),
+                result.getString("item_total_cost"));
+            }
+            System.out.println();
+
+            output = true;
         } catch (SQLException e) {
-            System.out.println("Update failed. Member possibly doesn't exist");
+            System.out.println("Query failed\n");
 
-            return false;
+            output = false;
         }
+
+        return output;
     }
 
     // Inputs -  purchase number

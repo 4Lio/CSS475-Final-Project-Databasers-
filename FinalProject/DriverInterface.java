@@ -58,6 +58,9 @@ public class DriverInterface {
                             case 11:
                                 client.Client_FindUndeliveredShipments();
                                 break;
+                            case 12:
+                                client.Client_MostRecentSale();
+                                break;
                             default:
                                 System.out.println("\nInvalid input\n");
                                 break;

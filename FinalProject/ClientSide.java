@@ -24,6 +24,7 @@ public class ClientSide {
         System.out.println("MonthlyCosts = 6" + "        UpdateDrinkPrice = 7");
         System.out.println("UpdateDrinkStatus = 8" + "   InventoryScan = 9");
         System.out.println("MostPurchases = 10" + "      FindUndeliveredShipments = 11");
+        System.out.println("MostRecentSale = 12");
     }
 
     // All public
@@ -40,8 +41,26 @@ public class ClientSide {
     // Output - prints success or failure (failure == drink doesn’t exists or something went wrong)  message before returning true or false
     // Purpose - allow for a manger to increase/decrease the cost of drinks in the gym as needed (price changes, discounts, etc)
     public boolean Client_UpdateDrinkPrice() {
+        ArrayList<String> input = new ArrayList<>();
+        String SKU;
+        String price;
+        
+        input.add("7");
 
-        return false;
+        System.out.print("Drink SKU: ");
+        SKU = scanner.next();
+        input.add(SKU);
+
+        System.out.print("New drink price: ");
+        price = scanner.next();
+        input.add(price);
+
+        if(Double.parseDouble(input.get(2)) <= 0) {
+            System.err.println("\nInvalid price\n");
+            return false;
+        } else { 
+            return server.ProcessInput(input);
+        } 
     }
     
     // Inputs - SKU or name, brand, flavor, new isActive status (true or false)
@@ -49,16 +68,57 @@ public class ClientSide {
     // Purpose - allow for a manager to label drinks in the system as no longer actively sold, will allow those drinks to not be included in 
     // certain reports (inventory scans, etc.)
     public boolean Client_UpdateDrinkStatus() {
+        ArrayList<String> input = new ArrayList<>();
+        String SKU;
+        String newStatus;
+        
+        input.add("8");
 
-        return false;
+        System.out.print("Drink SKU: ");
+        SKU = scanner.next();
+        input.add(SKU);
+
+        System.out.print("New drink status (true/false): ");
+        newStatus = scanner.next();
+        
+        if (!newStatus.equals("true") && !newStatus.equals("false")) {
+            System.err.println("Invalid status, must be true or false\n");
+            return false;
+        }
+
+        input.add(newStatus);
+        return server.ProcessInput(input);
     }
 
     // Inputs - agreement number, first name, last name
     // Output -  prints success or failure (failure == member already exists or something went wrong) message before returning true or false
     // Purpose - allow for a new member to be added to our system to track their sale and drink purchase histories
     public boolean Client_AddMember() {
+        ArrayList<String> input = new ArrayList<>();
+        String agreementNum;
+        String firstName;
+        String lastName;
+        
+        input.add("0");
 
-        return false;
+        System.out.print("Agreement number: ");
+        agreementNum = scanner.next();
+        if (!agreementNum.matches("\\d+")) {
+            System.err.println("Invalid agreement number. Must contain only numbers\n");
+            return false;
+        } else {
+            input.add(agreementNum);
+        }
+       
+        System.out.print("First name: ");
+        firstName = scanner.next();
+        input.add(firstName);
+
+        System.out.print("Last name: ");
+        lastName = scanner.next();
+        input.add(lastName);
+
+        return server.ProcessInput(input);
     }
 
     // Inputs - order number (from supplier), supplier email, order date, estimated arrival date, cost of order, all drinks in the shipment => SKU, 
@@ -114,9 +174,13 @@ public class ClientSide {
     // Output - prints info about most recent sale (purchase number, member, date, drinks purchased, total cost) OR prints failure message before 
     // returning true or false 
     // Purpose - allow the most recent purchase to be viewed
-    public boolean MostRecentSale() {
+    public boolean Client_MostRecentSale() {
+        ArrayList<String> input = new ArrayList<>();
 
-        return false;
+        System.out.println("Scanning most recent sale...");
+        input.add("12");
+
+        return server.ProcessInput(input);
     }
     
     // Inputs - member agreement number, number of rows (sales) they want returned
@@ -124,8 +188,31 @@ public class ClientSide {
     // exists or something went wrong) message before returning true or false
     // Purpose - analyze member patterns or find specific member transaction
     public boolean Client_MemberSales() {
+        ArrayList<String> input = new ArrayList<>();
+        String agreementNum;
+        String numRows;
+        
+        input.add("3");
 
-        return false;
+        System.out.print("Agreement number: ");
+        agreementNum = scanner.next();
+        if (!agreementNum.matches("\\d+")) {
+            System.err.println("Invalid agreement number. Must contain only numbers\n");
+            return false;
+        } else {
+            input.add(agreementNum);
+        }
+       
+        System.out.print("Number of rows to display: ");
+        numRows = scanner.next();
+        if (!numRows.matches("\\d+")) {
+            System.err.println("Invalid input. Must contain only numbers\n");
+            return false;
+        } else {
+            input.add(numRows);
+        }
+
+        return server.ProcessInput(input);
     }
 
     // Inputs -  purchase number
