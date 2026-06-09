@@ -110,19 +110,22 @@ public class ClientSide {
     
     // Purpose - allow the quantities of drinks in the gym to be updated when the shipment arrives to the gym
     public boolean Client_ShipmentArrived() {
-        String orderNumber = scanner.nextLine().trim();
+    ArrayList<String> params = new ArrayList<>();
+    String orderNumber;
 
-        if (orderNumber.isEmpty()) {
-            System.out.println("Invalid shipment order number.");
-            return false;
-        }
+    params.add("1"); // API number for ShipmentArrived
 
-        ArrayList<String> params = new ArrayList<>();
-        params.add("1");            // API number for ShipmentArrived
-        params.add(orderNumber);    // shipment order number
+    System.out.print("Shipment order number: ");
+    orderNumber = scanner.next();
 
-        return server.ProcessInput(params);
+    if (orderNumber.isEmpty()) {
+        System.err.println("Invalid shipment order number.\n");
+        return false;
     }
+
+    params.add(orderNumber);
+    return server.ProcessInput(params);
+}
 
     // Needs drink SKU and quantity of drinks to move from storage to display
     public boolean Client_MoveStock() {
@@ -188,51 +191,59 @@ public class ClientSide {
         return server.ProcessInput(list);
     }
     
-    // Purpose - Shows profit for each month in the selected year to make business decisions
-    public boolean Client_MonthlyProfits() {
-        System.out.print("Enter year for MonthlyProfits: ");
+   // Inputs - year
+// Output - prints information about most profitable month for given year
+//          (month, totalRevenue, totalCost, profit) or failure message
+// Purpose - Shows profit for each month in the selected year to make business decisions
+public boolean Client_MonthlyProfits() {
+    ArrayList<String> params = new ArrayList<>();
+    String year;
 
-        int year;
-        try {
-            year = Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid year. Please enter a number like 2026.");
-            return false;
-        }
+    params.add("5"); // API number for MonthlyProfits
 
-        ArrayList<String> params = new ArrayList<>();
-        params.add("5");                  // API number for MonthlyProfits
-        params.add(String.valueOf(year));  // year parameter
+    System.out.print("Year for MonthlyProfits: ");
+    year = scanner.next();
 
-        return server.ProcessInput(params);
+    if (!year.matches("\\d{4}")) {
+        System.err.println("Invalid year. Please enter a 4-digit year like 2026.\n");
+        return false;
     }
-        
-    // Purpose - find any missing shipments or solve stock discrepancies in the system
-    public boolean Client_FindUndeliveredShipments() {
-        ArrayList<String> params = new ArrayList<>();
-        params.add("11"); // API number for FindUndeliveredShipments
 
-        return server.ProcessInput(params);
+    params.add(year);
+    return server.ProcessInput(params);
+}
+    
+// Inputs - none
+// Output - prints information about any shipments in the system not yet delivered
+// Purpose - find any missing shipments or solve stock discrepancies in the system
+public boolean Client_FindUndeliveredShipments() {
+    ArrayList<String> params = new ArrayList<>();
+    params.add("11"); // API number for FindUndeliveredShipments
+
+    return server.ProcessInput(params);
+}
+    
+// Inputs - year
+// Outputs - print information about most costly month for the gym from the input year
+//           (month, totalShipmentCost, totalDrinkUnitsPurchased)
+// Purpose - Shows how much money was spent on drink shipments for each month
+public boolean Client_MonthlyCosts() {
+    ArrayList<String> params = new ArrayList<>();
+    String year;
+
+    params.add("6"); // API number for MonthlyCosts
+
+    System.out.print("Year for MonthlyCosts: ");
+    year = scanner.next();
+
+    if (!year.matches("\\d{4}")) {
+        System.err.println("Invalid year. Please enter a 4-digit year like 2026.\n");
+        return false;
     }
-        
-    // Purpose - Shows how much money was spent on drink shipments for each month
-    public boolean Client_MonthlyCosts() {
-        System.out.print("Enter year for MonthlyCosts: ");
 
-        int year;
-        try {
-            year = Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid year. Please enter a number like 2026.");
-            return false;
-        }
-
-        ArrayList<String> params = new ArrayList<>();
-        params.add("6");                  // API number for MonthlyCosts
-        params.add(String.valueOf(year));  // year parameter
-
-        return server.ProcessInput(params);
-    }
+    params.add(year);
+    return server.ProcessInput(params);
+}
     
     // Purpose - view quantities of drinks in the gym
     public boolean Client_InventoryScan() {
